@@ -60,6 +60,26 @@ def Head():
 
     return wb
 
+class PageHandler(object):
+    """Класс обрабатывает один URL."""
+    def __init__(self, arg):
+        super(PageHandler, self).__init__()
+        self.arg = arg
+
+    def execute(self, arg):
+        jk = JK()
+        # заполняем поля объекта jk данными
+        return jk
+
+class JK(object):
+    """Класс представляет собой набор данных, описывающий один
+    Жилой комплекс."""
+    def __init__(self, arg):
+        super(JK, self).__init__()
+        self.arg = arg
+
+
+
 # функция выбирает один ЖК
 def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
 
