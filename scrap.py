@@ -84,7 +84,7 @@ class PageHandler(object):
         bsObj = BeautifulSoup(html.read(), features="html.parser")
 
         # выбираем необходимые данные
-        data = ExtractDataFromHtml(bsObj)
+        data = self.ExtractDataFromHtml(bsObj)
         return data
 
     def OpenURL(self):
@@ -103,11 +103,15 @@ class PageHandler(object):
                 install_opener(opener)
 
                 # открываем URL
-                req = Request(URL, headers = {'User-Agent':choice(self.UserAgentsList)})
+                UAName = choice(self.UserAgentsList)
+                req = Request(self.URL, headers = {'User-Agent':UAName})
                 html = urlopen(req)
                 return html
             except Exception as e:
-                print("********Прокси-сервер", proxy_name, "не открылся!***********")
+                print("************* URL не открылся! ************************")
+                print("\tURL:",self.URL)
+                print("\tПрокси:",proxy_name)
+                print("\tUser-Agent:",UAName)
                 continue
 
     def ExtractDataFromHtml(self, BS4):
@@ -115,7 +119,7 @@ class PageHandler(object):
         data = {}
 
         # получаем название ЖК
-        lst = bsObj.findAll("h1", {"class": "card_title", "itemprop": "name"})
+        lst = BS4.findAll("h1", {"class": "card_title", "itemprop": "name"})
         data['JK_name'] = lst[0].get_text()
 
         return data
@@ -165,14 +169,14 @@ JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
     'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
 
 #wb = Head()
-
+data = []
 for JK in JKList:
-    data = {}
     handler = PageHandler(JK)
     try:
-        data = handler.execute()
+        DataOneJK = handler.execute()
     except Exception as e:
         print(e)
+    data.append(DataOneJK)
 
 print(data)
 
