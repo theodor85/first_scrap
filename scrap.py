@@ -1,7 +1,7 @@
 #-*-coding: utf-8 -*-
 
 import urllib.request
-from urllib.request import urlopen, Request, ProxyHandler
+from urllib.request import urlopen, Request, ProxyHandler, build_opener, install_opener
 from bs4 import BeautifulSoup
 from random import choice
 import openpyxl
@@ -62,14 +62,64 @@ def Head():
 
 class PageHandler(object):
     """Класс обрабатывает один URL."""
-    def __init__(self, arg):
-        super(PageHandler, self).__init__()
-        self.arg = arg
+    def __init__(self, URL):
+        self.URL = URL
+        self.ProxiesList = self.GetProxiesList("proxy_list.txt")
+        self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
 
-    def execute(self, arg):
-        jk = JK()
-        # заполняем поля объекта jk данными
-        return jk
+    #загружает список User-Agent
+    def GetUserAgentsList(self, filename):
+        return open(filename).read().strip().split('\n')
+
+    #загружает список прокси-серверов
+    def GetProxiesList(self, filename):
+        return open(filename).read().strip().split('\n')
+
+    def execute(self):
+
+        # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
+        html = self.OpenURL()
+        if html == None:
+            raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
+        bsObj = BeautifulSoup(html.read(), features="html.parser")
+
+        # выбираем необходимые данные
+        data = ExtractDataFromHtml(bsObj)
+        return data
+
+    def OpenURL(self):
+        """Метод делает 10 попыток открыть URL с разных прокси.
+        Если открыть URL не удаётся, возвращется None. """
+        i = 0
+        while True:
+            i += 1
+            if i>10:
+                return None
+            try:
+                #указываем прокси-сервер
+                proxy_name = choice(self.ProxiesList)
+                proxy = ProxyHandler({'http':proxy_name})
+                opener = build_opener(proxy)
+                install_opener(opener)
+
+                # открываем URL
+                req = Request(URL, headers = {'User-Agent':choice(self.UserAgentsList)})
+                html = urlopen(req)
+                return html
+            except Exception as e:
+                print("********Прокси-сервер", proxy_name, "не открылся!***********")
+                continue
+
+    def ExtractDataFromHtml(self, BS4):
+
+        data = {}
+
+        # получаем название ЖК
+        lst = bsObj.findAll("h1", {"class": "card_title", "itemprop": "name"})
+        data['JK_name'] = lst[0].get_text()
+
+        return data
+
 
 class JK(object):
     """Класс представляет собой набор данных, описывающий один
@@ -80,7 +130,7 @@ class JK(object):
 
 
 
-# функция выбирает один ЖК
+# функция выбирает один ЖК - НЕ АКТУАЛЬНА
 def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
 
     #указываем прокси-сервер
@@ -105,18 +155,8 @@ def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
     print("В ячейку", Cell, "записаны данные:", lst[0].get_text())
     print("-"*40)
 
-#загружает список User-Agent
-def GetUserAgentsList(filename):
-    return open(filename).read().split('\n')
-
-#загружает список прокси-серверов
-def GetProxiesList(filename):
-    return open(filename).read().split('\n')
 
 #main
-
-UAList = GetUserAgentsList("useragents.txt")
-ProxiesList = GetProxiesList("proxy_list.txt")
 
 JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
     'https://www.novostroy-m.ru/baza/jk_mir_mitino',
@@ -124,12 +164,17 @@ JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
     'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
     'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
 
-wb = Head()
+#wb = Head()
 
-i = 0
 for JK in JKList:
-    OneJK(wb, JK, 9+i, choice(ProxiesList), choice(UAList))
-    i+=1
+    data = {}
+    handler = PageHandler(JK)
+    try:
+        data = handler.execute()
+    except Exception as e:
+        print(e)
 
-wb.save('ex.xlsx')
+print(data)
+
+#wb.save('ex.xlsx')
 print("Всё ОК!")
