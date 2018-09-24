@@ -1,10 +1,12 @@
 #-*-coding: utf-8 -*-
 
 ## TODO: 1. Выделить класс PageHandler в отдельный файл (модуль) - OK
-#        2. Попроовать поиграться с декораторами
+#        2. Попроовать поиграться с декораторами - OK
+#        3. Сделать обработчик списка URL-ов в отдельном файле
 
 import openpyxl
 from pagehandler import PageHandlerDecorator
+from pageslisthandler import PagesListHandler
 
 # функция создаёт файл Excel и рисует шапку
 def Head():
@@ -110,14 +112,8 @@ JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
     'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
 
 #wb = Head()
-data = []
-for JK in JKList:
-    handler = OneJKHandler(JK)
-    try:
-        DataOneJK = handler.execute()
-    except Exception as e:
-        print(e)
-    data.append(DataOneJK)
+ListHandler = PagesListHandler(JKList, OneJKHandler)
+data = ListHandler.execute()
 
 print(data)
 
