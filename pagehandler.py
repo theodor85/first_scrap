@@ -5,69 +5,68 @@ from urllib.request import urlopen, Request, ProxyHandler, build_opener, install
 from bs4 import BeautifulSoup
 from random import choice
 
-class PageHandler(object):
-    """Класс обрабатывает один URL."""
-    def __init__(self, URL):
-        self.URL = URL
-        self.ProxiesList = self.GetProxiesList("proxy_list.txt")
-        self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
+def PageHandlerDecorator(UserHandler):
+    """Декоратор класса.
+    В декорируемом классе необходимо определить:
+        метод ExtractDataFromHtml(self, BS4), в которой нужно прописать выборку
+            данных из html-страницы
+        поле URL - инициализирующееся в конструкторе
+    """
 
-    #загружает список User-Agent
-    def GetUserAgentsList(self, filename):
-        return open(filename).read().strip().split('\n')
+    class PageHandler(UserHandler):
+        """Класс обрабатывает один URL."""
+        def __init__(self, URL):
+            super().__init__(URL)
+            self.ProxiesList = self.GetProxiesList("proxy_list.txt")
+            self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
 
-    #загружает список прокси-серверов
-    def GetProxiesList(self, filename):
-        return open(filename).read().strip().split('\n')
+        #загружает список User-Agent
+        def GetUserAgentsList(self, filename):
+            return open(filename).read().strip().split('\n')
 
-    def execute(self):
+        #загружает список прокси-серверов
+        def GetProxiesList(self, filename):
+            return open(filename).read().strip().split('\n')
 
-        # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
-        html = self.OpenURL()
-        if html == None:
-            raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
-        bsObj = BeautifulSoup(html.read(), features="html.parser")
+        def execute(self):
 
-        # выбираем необходимые данные
-        data = self.ExtractDataFromHtml(bsObj)
-        return data
+            # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
+            html = self.OpenURL()
+            if html == None:
+                raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
+            bsObj = BeautifulSoup(html.read(), features="html.parser")
 
-    def OpenURL(self):
-        """Метод делает 10 попыток открыть URL с разных прокси.
-        Если открыть URL не удаётся, возвращется None. """
-        i = 0
-        while True:
-            i += 1
-            if i>10:
-                return None
-            #указываем прокси-сервер
-            proxy_name = choice(self.ProxiesList)
-            print(proxy_name)
-            proxy = ProxyHandler({'http':proxy_name})
-            opener = build_opener(proxy)
-            install_opener(opener)
-            # создаём объект запроса со случайным User-Agent
-            UAName = choice(self.UserAgentsList)
-            req = Request(self.URL, headers = {'User-Agent':UAName})
-            try:
-                # открываем URL
-                html = urlopen(req)
-                return html
-            except Exception as e:
-                print("************* URL не открылся! ************************")
-                print("Текст ошибки:", e)
-                print("\tURL:",self.URL)
-                print("\tПрокси:",proxy_name)
-                print("\tUser-Agent:",UAName)
-                continue
+            # выбираем необходимые данные
+            data = self.ExtractDataFromHtml(bsObj)
+            return data
 
-    # это та самая функция, которую нужно изменять для каждой html-страницы
-    def ExtractDataFromHtml(self, BS4):
+        def OpenURL(self):
+            """Метод делает 10 попыток открыть URL с разных прокси.
+            Если открыть URL не удаётся, возвращется None. """
+            i = 0
+            while True:
+                i += 1
+                if i>10:
+                    return None
+                #указываем прокси-сервер
+                proxy_name = choice(self.ProxiesList)
+                print(proxy_name)
+                proxy = ProxyHandler({'http':proxy_name})
+                opener = build_opener(proxy)
+                install_opener(opener)
+                # создаём объект запроса со случайным User-Agent
+                UAName = choice(self.UserAgentsList)
+                req = Request(self.URL, headers = {'User-Agent':UAName})
+                try:
+                    # открываем URL
+                    html = urlopen(req)
+                    return html
+                except Exception as e:
+                    print("************* URL не открылся! ************************")
+                    print("Текст ошибки:", e)
+                    print("\tURL:",self.URL)
+                    print("\tПрокси:",proxy_name)
+                    print("\tUser-Agent:",UAName)
+                    continue
 
-        data = {}
-
-        # получаем название ЖК
-        lst = BS4.findAll("h1", {"class": "card_title", "itemprop": "name"})
-        data['JK_name'] = lst[0].get_text()
-
-        return data
+    return PageHandler

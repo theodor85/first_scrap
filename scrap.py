@@ -4,7 +4,7 @@
 #        2. Попроовать поиграться с декораторами
 
 import openpyxl
-from pagehandler import PageHandler
+from pagehandler import PageHandlerDecorator
 
 # функция создаёт файл Excel и рисует шапку
 def Head():
@@ -85,6 +85,21 @@ def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
     print("В ячейку", Cell, "записаны данные:", lst[0].get_text())
     print("-"*40)
 
+# класс для использования в декораторе
+@PageHandlerDecorator
+class OneJKHandler(object):
+    def __init__(self, URL):
+        self.URL = URL
+
+    # это та самая функция, которую нужно изменять для каждой html-страницы
+    def ExtractDataFromHtml(self, BS4):
+
+        data = {}
+        # получаем название ЖК
+        lst = BS4.findAll("h1", {"class": "card_title", "itemprop": "name"})
+        data['JK_name'] = lst[0].get_text()
+
+        return data
 
 #main
 
@@ -97,7 +112,7 @@ JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
 #wb = Head()
 data = []
 for JK in JKList:
-    handler = PageHandler(JK)
+    handler = OneJKHandler(JK)
     try:
         DataOneJK = handler.execute()
     except Exception as e:
