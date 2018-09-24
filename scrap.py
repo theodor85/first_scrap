@@ -114,6 +114,7 @@ class PageHandler(object):
                 print("\tUser-Agent:",UAName)
                 continue
 
+    # это та самая функция, которую нужно изменять для каждой html-страницы
     def ExtractDataFromHtml(self, BS4):
 
         data = {}
@@ -123,16 +124,6 @@ class PageHandler(object):
         data['JK_name'] = lst[0].get_text()
 
         return data
-
-
-class JK(object):
-    """Класс представляет собой набор данных, описывающий один
-    Жилой комплекс."""
-    def __init__(self, arg):
-        super(JK, self).__init__()
-        self.arg = arg
-
-
 
 # функция выбирает один ЖК - НЕ АКТУАЛЬНА
 def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
@@ -177,6 +168,8 @@ for JK in JKList:
     except Exception as e:
         print(e)
     data.append(DataOneJK)
+
+    
 
 print(data)
 
