@@ -5,6 +5,7 @@
 
 import openpyxl
 from pagehandler import PageHandlerDecorator
+from pageslisthandler import PagesListHandler
 
 # функция создаёт файл Excel и рисует шапку
 def Head():
@@ -102,24 +103,17 @@ class OneJKHandler(object):
         return data
 
 #main
+if __name__ == '__main__':
+    JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
+        'https://www.novostroy-m.ru/baza/jk_mir_mitino',
+        'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
+        'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
+        'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
 
-JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
-    'https://www.novostroy-m.ru/baza/jk_mir_mitino',
-    'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
-    'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
-    'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
+    #wb = Head()
+    data = PagesListHandler(JKList, OneJKHandler)
 
-#wb = Head()
-data = []
-for JK in JKList:
-    handler = OneJKHandler(JK)
-    try:
-        DataOneJK = handler.execute()
-    except Exception as e:
-        print(e)
-    data.append(DataOneJK)
+    print(data)
 
-print(data)
-
-#wb.save('ex.xlsx')
-print("Всё ОК!")
+    #wb.save('ex.xlsx')
+    print("Всё ОК!")
