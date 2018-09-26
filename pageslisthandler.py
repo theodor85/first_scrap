@@ -18,7 +18,7 @@ def PagesListHandler(URLList, OnePageHandlerClass):
         Handler = OnePageHandlerClass(URL)
         p = Process(target=OnePageHandling, args=(Handler,q,))
         p.start()
-        data.append(q.get()) 
-        p.join()
 
+    for i in range(0, q.qsize()-1):
+        data.append(q.get())
     return data
