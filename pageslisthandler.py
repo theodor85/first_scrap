@@ -1,16 +1,21 @@
 #-*-coding: utf-8 -*-
 from multiprocessing import Pool
 
-data = []
-def OnePageHandling(URL, HandlerClass):
-    PageHandler = HandlerClass(URL)
+def OnePageHandling(Handler):
+
     try:
-        DataOneJK = PageHandler.execute()
+        DataOneJK = Handler.execute()
     except Exception as e:
         print(e)
-    data.append(DataOneJK)
+    return DataOneJK
 
 def PagesListHandler(URLList, OnePageHandlerClass):
+
+    data = []
+    Handlers = []
+    for URL in URLList:
+        Handler = OnePageHandlerClass(URL)
+        Handlers.append(Handler)
     with Pool(10) as p:
-        p.map(OnePageHandling, URLList)
+        data = p.map(OnePageHandling, Handlers)
     return data
