@@ -112,7 +112,6 @@ if __name__ == '__main__':
 
     #wb = Head()
     data = PagesListHandler(JKList, OneJKHandler)
-
     print(data)
 
     #wb.save('ex.xlsx')
