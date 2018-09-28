@@ -1,8 +1,6 @@
 #-*-coding: utf-8 -*-
 
-## TODO: 1. Выделить класс PageHandler в отдельный файл (модуль) - OK
-#        2. Попроовать поиграться с декораторами - OK
-#        3. Сделать обработчик списка URL-ов в отдельном файле
+## TODO: 1. Написать декорируемый класс для получения списка всех ссылок на ЖК
 
 import openpyxl
 from pagehandler import PageHandlerDecorator
@@ -103,18 +101,62 @@ class OneJKHandler(object):
 
         return data
 
+@PageHandlerDecorator
+class ListPage(object):
+    def __init__(self, URL):
+        self.URL = URL
+    def ExtractDataFromHtml(self, BS4):
+
+        data = []
+
+        lstA = BS4.findAll("div", class_='row adaptive_section_only_bottom')
+        print(lstA)
+        #for a in lstA:
+        #    print(a)
+        #    Url = 'https://www.novostroy-m.ru'
+        #    Url = Url + a['href']
+        #    data.append(Url)
+
+        return data
+
+
 #main
 if __name__ == '__main__':
-    JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
-        'https://www.novostroy-m.ru/baza/jk_mir_mitino',
-        'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
-        'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
-        'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
+    # 1. Сделать список ссылок вида https://www.novostroy-m.ru/baza?page=63
+    # 2. Обработать этот список и из каждого извлечь список ссылок на ЖК
+    # 3. Объединить все списки ЖК в один
+    # 4. Этот список обработать и извлечь данные
+    # Итак нам нужно:
+    #    класс, обрабатывающий каждую страницу ЖК (уже есть)
+    #    класс, обрабатыающий страницы списков
 
-    JKList = ['https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
-    #wb = Head()
-    data = PagesListHandler(JKList, OneJKHandler)
+    #1
+    PagesList = []
+    for i in range(63):
+        PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
+        PagesList.append(PageAddr)
+    print(PagesList)
+
+    # попробуем сделать обработку одной страницы
+    lp = ListPage(PagesList[0])
+    data = lp.execute()
     print(data)
+
+    #2
+    #data = PagesListHandler(PagesList, ListPage)
+    #for i in range(len(data)):
+    #    print(data[i])
+
+    #JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
+    #    'https://www.novostroy-m.ru/baza/jk_mir_mitino',
+    #    'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
+    #    'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
+    #    'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
+#
+#    JKList = ['https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
+#    #wb = Head()
+#    data = PagesListHandler(JKList, OneJKHandler)
+#    print(data)
 
     #wb.save('ex.xlsx')
     print("Всё ОК!")
