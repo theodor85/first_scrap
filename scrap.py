@@ -110,6 +110,7 @@ if __name__ == '__main__':
         'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
         'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
 
+    #JKList = ['https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
     #wb = Head()
     data = PagesListHandler(JKList, OneJKHandler)
     print(data)
