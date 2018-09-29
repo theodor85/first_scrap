@@ -103,7 +103,7 @@ class OneJKHandler(object):
 
 @PageHandlerDecorator
 class ListPage(object):
-    def __init__(self, URL):
+    def __init__(self, URL, UseSelenium=False):
         self.URL = URL
     def ExtractDataFromHtml(self, BS4):
 
@@ -129,6 +129,12 @@ if __name__ == '__main__':
     # Итак нам нужно:
     #    класс, обрабатывающий каждую страницу ЖК (уже есть)
     #    класс, обрабатыающий страницы списков
+    #использование селениум:
+    #    from selenium import WebDriver as wd
+    #    b = wd.Chrome()
+    #    b.get(url)
+    #    a = b.find_element_by_xpath( '//a[@class="img_link pos_rel d_b layout_hover_item"]' )
+    #    href=a.get_attribute('href')
 
     #1
     PagesList = []

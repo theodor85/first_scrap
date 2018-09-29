@@ -15,8 +15,8 @@ def PageHandlerDecorator(UserHandler):
 
     class PageHandler(UserHandler):
         """Класс обрабатывает один URL."""
-        def __init__(self, URL):
-            super().__init__(URL)
+        def __init__(self, URL, UseSelenium=False):
+            super().__init__(URL, UseSelenium)
             self.ProxiesList = self.GetProxiesList("proxy_list.txt")
             self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
 
