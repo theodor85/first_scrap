@@ -4,19 +4,21 @@ import urllib.request
 from urllib.request import urlopen, Request, ProxyHandler, build_opener, install_opener
 from bs4 import BeautifulSoup
 from random import choice
+from selenium import webdriver
 
 def PageHandlerDecorator(UserHandler):
     """Декоратор класса.
     В декорируемом классе необходимо определить:
-        метод ExtractDataFromHtml(self, BS4), в которой нужно прописать выборку
+        метод ExtractDataFromHtml(self, soup=None, driver=None), в которой нужно прописать выборку
             данных из html-страницы
         поле URL - инициализирующееся в конструкторе
+        поле UseSelenium - инициализирующееся в конструкторе. Принимает значение Fаlse или True
     """
 
     class PageHandler(UserHandler):
         """Класс обрабатывает один URL."""
-        def __init__(self, URL, UseSelenium=False):
-            super().__init__(URL, UseSelenium)
+        def __init__(self, URL):
+            super().__init__(URL)
             self.ProxiesList = self.GetProxiesList("proxy_list.txt")
             self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
 
@@ -30,15 +32,20 @@ def PageHandlerDecorator(UserHandler):
 
         def execute(self):
 
-            # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
-            html = self.OpenURL()
-            if html == None:
-                raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
-            bsObj = BeautifulSoup(html.read(), features="html.parser")
-
-            # выбираем необходимые данные
-            data = self.ExtractDataFromHtml(bsObj)
-            return data
+            if self.UseSelenium:
+                driver = webdriver.Chrome()
+                driver.get(self.URL)
+                data = self.ExtractDataFromHtml(driver = driver)
+                return data
+            else:
+                # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
+                html = self.OpenURL()
+                if html == None:
+                    raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
+                bsObj = BeautifulSoup(html.read(), features="html.parser")
+                # выбираем необходимые данные
+                data = self.ExtractDataFromHtml(soup = bsObj)
+                return data
 
         def OpenURL(self):
             """Метод делает 10 попыток открыть URL с разных прокси.

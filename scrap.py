@@ -90,33 +90,29 @@ def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
 class OneJKHandler(object):
     def __init__(self, URL):
         self.URL = URL
-
+        self.UseSelenium = False
     # это та самая функция, которую нужно изменять для каждой html-страницы
-    def ExtractDataFromHtml(self, BS4):
+    def ExtractDataFromHtml(self, soup=None, driver=None):
 
         data = {}
         # получаем название ЖК
-        lst = BS4.findAll("h1", {"class": "card_title", "itemprop": "name"})
+        lst = soup.findAll("h1", {"class": "card_title", "itemprop": "name"})
         data['JK_name'] = lst[0].get_text()
 
         return data
 
 @PageHandlerDecorator
 class ListPage(object):
-    def __init__(self, URL, UseSelenium=False):
+    def __init__(self, URL):
         self.URL = URL
-    def ExtractDataFromHtml(self, BS4):
+        self.UseSelenium = True
+    def ExtractDataFromHtml(self, soup=None, driver=None):
 
         data = []
-
-        lstA = BS4.findAll("div", class_='row adaptive_section_only_bottom')
-        print(lstA)
-        #for a in lstA:
-        #    print(a)
-        #    Url = 'https://www.novostroy-m.ru'
-        #    Url = Url + a['href']
-        #    data.append(Url)
-
+        a = driver.find_element_by_xpath( '//a[@class="img_link pos_rel d_b layout_hover_item"]' )
+        href=a.get_attribute('href')
+        print(href)
+        data.append(href)
         return data
 
 
@@ -138,7 +134,7 @@ if __name__ == '__main__':
 
     #1
     PagesList = []
-    for i in range(63):
+    for i in range(2):
         PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
         PagesList.append(PageAddr)
     print(PagesList)

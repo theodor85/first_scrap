@@ -1,13 +1,10 @@
 #-*-coding: utf-8 -*-
 from multiprocessing import Process, Queue
 
-def OnePageHandling(Handler, qu):
+def OnePageHandling(Handler, queue):
 
-    try:
-        DataOneJK = Handler.execute()
-    except Exception as e:
-        print(e)
-    qu.put(DataOneJK)
+    with Handler.execute() as DataOnePage:
+        queue.put(DataOnePage)
 
 def PagesListHandler(URLList, OnePageHandlerClass):
 
