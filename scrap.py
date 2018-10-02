@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     #1
     PagesList = []
-    for i in range(7):
+    for i in range(63):
         PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
         PagesList.append(PageAddr)
     print("Список страниц для обработки:")
@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     start = datetime.now()
     #2
-    data = PagesListHandler(PagesList, ListPage)
+    data = PagesListHandler(PagesList, ListPage, WithProcesses=False)
     print("Выводим результат:")
     for i in range(len(data)):
         print("***** ЖК из %d-ой страницы: "%i)

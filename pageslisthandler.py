@@ -7,8 +7,17 @@ def OnePageHandling(Handler, queue):
     DataOnePage = Handler.execute()
     queue.put(DataOnePage)
 
-def PagesListHandler(URLList, OnePageHandlerClass):
+def _WithoutProcesses(URLList, OnePageHandlerClass):
+    data = []
+    i = 0
+    for URL in URLList:
+        i += 1
+        Handler = OnePageHandlerClass(URL)
+        print("Обрабатываем страницу № %d, URL: %s"%(i, URL))
+        data.append(Handler.execute())
+    return data
 
+def _WithProcesses(URLList, OnePageHandlerClass):
     data = []
     Handlers = []
     ProcessList = []
@@ -38,3 +47,10 @@ def PagesListHandler(URLList, OnePageHandlerClass):
     for i in range(0, q.qsize()):
         data.append(q.get())
     return data
+
+def PagesListHandler(URLList, OnePageHandlerClass, WithProcesses=True):
+
+    if WithProcesses:
+        return _WithProcesses(URLList, OnePageHandlerClass)
+    else:
+        return _WithoutProcesses(URLList, OnePageHandlerClass)
