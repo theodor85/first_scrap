@@ -3,8 +3,8 @@ from multiprocessing import Process, Queue
 
 def OnePageHandling(Handler, queue):
 
-    with Handler.execute() as DataOnePage:
-        queue.put(DataOnePage)
+    DataOnePage = Handler.execute()
+    queue.put(DataOnePage)
 
 def PagesListHandler(URLList, OnePageHandlerClass):
 

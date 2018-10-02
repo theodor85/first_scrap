@@ -19,27 +19,28 @@ def PageHandlerDecorator(UserHandler):
         """Класс обрабатывает один URL."""
         def __init__(self, URL):
             super().__init__(URL)
-            self.ProxiesList = self.GetProxiesList("proxy_list.txt")
-            self.UserAgentsList = self.GetUserAgentsList("useragents.txt")
+            self.ProxiesList = self._GetProxiesList("proxy_list.txt")
+            self.UserAgentsList = self._GetUserAgentsList("useragents.txt")
 
         #загружает список User-Agent
-        def GetUserAgentsList(self, filename):
+        def _GetUserAgentsList(self, filename):
             return open(filename).read().strip().split('\n')
 
         #загружает список прокси-серверов
-        def GetProxiesList(self, filename):
+        def _GetProxiesList(self, filename):
             return open(filename).read().strip().split('\n')
 
         def execute(self):
 
             if self.UseSelenium:
-                driver = webdriver.Chrome()
+                driver = webdriver.Chrome(desired_capabilities=self._SetCapabilities())
                 driver.get(self.URL)
                 data = self.ExtractDataFromHtml(driver = driver)
+                driver.close()
                 return data
             else:
                 # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
-                html = self.OpenURL()
+                html = self._OpenURL()
                 if html == None:
                     raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
                 bsObj = BeautifulSoup(html.read(), features="html.parser")
@@ -47,7 +48,17 @@ def PageHandlerDecorator(UserHandler):
                 data = self.ExtractDataFromHtml(soup = bsObj)
                 return data
 
-        def OpenURL(self):
+        def _SetCapabilities(self):
+            # используем случайный proxy
+            proxy_name = choice(self.ProxiesList)
+            capabilities = webdriver.DesiredCapabilities.CHROME.copy()
+            capabilities['proxy'] = {
+                'httpProxy':proxy_name,
+                'proxyType':'MANUAL',
+            }
+            return capabilities
+
+        def _OpenURL(self):
             """Метод делает 10 попыток открыть URL с разных прокси.
             Если открыть URL не удаётся, возвращется None. """
             i = 0

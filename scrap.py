@@ -5,6 +5,7 @@
 import openpyxl
 from pagehandler import PageHandlerDecorator
 from pageslisthandler import PagesListHandler
+from datetime import datetime
 
 # функция создаёт файл Excel и рисует шапку
 def Head():
@@ -109,10 +110,15 @@ class ListPage(object):
     def ExtractDataFromHtml(self, soup=None, driver=None):
 
         data = []
-        a = driver.find_element_by_xpath( '//a[@class="img_link pos_rel d_b layout_hover_item"]' )
-        href=a.get_attribute('href')
-        print(href)
-        data.append(href)
+        list_a = driver.find_elements_by_xpath( '//a[@class="pos_a z_i_1 d_b layout"]' )
+        for a in list_a:
+            href = a.get_attribute('href')
+            print("Найдена ссылка", href)
+            # если ссылка рекламная, то её пропускаем
+            if href.find('adfox') != -1:
+                print("\tЭта ссылка рекламная!")
+            else:
+                data.append(href)
         return data
 
 
@@ -134,21 +140,30 @@ if __name__ == '__main__':
 
     #1
     PagesList = []
-    for i in range(2):
+    for i in range(15):
         PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
         PagesList.append(PageAddr)
+    print("Список страниц для обработки:")
     print(PagesList)
 
     # попробуем сделать обработку одной страницы
-    lp = ListPage(PagesList[0])
-    data = lp.execute()
-    print(data)
+    #lp = ListPage(PagesList[0])
+    #data = lp.execute()
+    #i = 0
+    #for elem in data:
+#        i += 1
+#        print('Ссылка № %d, адрес: %s'%(i, elem))
 
+    start = datetime.now()
     #2
-    #data = PagesListHandler(PagesList, ListPage)
-    #for i in range(len(data)):
-    #    print(data[i])
+    data = PagesListHandler(PagesList, ListPage)
+    print("Выводим результат:")
+    for i in range(len(data)):
+        print("***** ЖК из %d-ой страницы: "%i)
+        for j in range(len(data[i])):
+            print( "\tЖК № %d: %s" % (j, data[i][j]) )
 
+    end = datetime.now()
     #JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
     #    'https://www.novostroy-m.ru/baza/jk_mir_mitino',
     #    'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
@@ -161,4 +176,6 @@ if __name__ == '__main__':
 #    print(data)
 
     #wb.save('ex.xlsx')
-    print("Всё ОК!")
+    total = end - start
+
+    print("Всё ОК! Всего затрачено времени: ", str(total))
