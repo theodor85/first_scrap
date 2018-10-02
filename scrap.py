@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     #1
     PagesList = []
-    for i in range(15):
+    for i in range(7):
         PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
         PagesList.append(PageAddr)
     print("Список страниц для обработки:")

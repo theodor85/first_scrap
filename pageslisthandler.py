@@ -1,5 +1,6 @@
 #-*-coding: utf-8 -*-
 from multiprocessing import Process, Queue
+from time import sleep
 
 def OnePageHandling(Handler, queue):
 
@@ -24,6 +25,7 @@ def PagesListHandler(URLList, OnePageHandlerClass):
     print("Ожидаем завершение процессов...")
     while True:
         alive_is_here = False
+        sleep(1)
         for i in range(0, len(ProcessList)):
             if ProcessList[i].is_alive():
                 alive_is_here = True
