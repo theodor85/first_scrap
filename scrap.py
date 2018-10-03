@@ -1,6 +1,6 @@
 #-*-coding: utf-8 -*-
 
-## TODO: 1. Сделать обработку списка ЖК через кликанье кнопки "Далее" - 1 п.
+## TODO: 1. Сделать обработку списка ЖК через кликанье кнопки "Далее" - 1 п. -ОК, но на это ушло 1,5 часа
 #        2. Флаг processLimit и его работа - 2 п.
 #        3. Спарсить сайт с новостройками - 1 п.
 
@@ -8,6 +8,7 @@ import openpyxl
 from pagehandler import PageHandlerDecorator
 from pageslisthandler import PagesListHandler
 from datetime import datetime
+from time import sleep
 
 # функция создаёт файл Excel и рисует шапку
 def Head():
@@ -112,72 +113,52 @@ class ListPage(object):
     def ExtractDataFromHtml(self, soup=None, driver=None):
 
         data = []
-        list_a = driver.find_elements_by_xpath( '//a[@class="pos_a z_i_1 d_b layout"]' )
-        for a in list_a:
-            href = a.get_attribute('href')
-            print("Найдена ссылка", href)
-            # если ссылка рекламная, то её пропускаем
-            if href.find('adfox') != -1:
-                print("\tЭта ссылка рекламная!")
-            else:
-                data.append(href)
+
+        while True:
+            list_a = driver.find_elements_by_xpath( '//a[@class="pos_a z_i_1 d_b layout"]' )
+            for a in list_a:
+                href = a.get_attribute('href')
+                print("Найдена ссылка", href)
+                # если ссылка рекламная, то её пропускаем
+                if href.find('adfox') != -1:
+                    print("\tЭта ссылка рекламная!")
+                else:
+                    data.append(href)
+
+            # находим жлемент "Далее" и кликаем на нём. Если его нет (он не активен)
+            # то выходим из цикла
+            ul = driver.find_element_by_xpath( '//ul[@class="yiiPager"]' )
+            try:
+                li_next_hidden = ul.find_element_by_xpath('//li[@class="next hidden"]')
+                break
+            except:
+                li = ul.find_element_by_class_name('next')
+                a = li.find_element_by_tag_name('a')
+                a.click()
+                sleep(3)
+
         return data
 
 
 #main
 if __name__ == '__main__':
-    # 1. Сделать список ссылок вида https://www.novostroy-m.ru/baza?page=63
-    # 2. Обработать этот список и из каждого извлечь список ссылок на ЖК
-    # 3. Объединить все списки ЖК в один
-    # 4. Этот список обработать и извлечь данные
-    # Итак нам нужно:
-    #    класс, обрабатывающий каждую страницу ЖК (уже есть)
-    #    класс, обрабатыающий страницы списков
-    #использование селениум:
-    #    from selenium import WebDriver as wd
-    #    b = wd.Chrome()
-    #    b.get(url)
-    #    a = b.find_element_by_xpath( '//a[@class="img_link pos_rel d_b layout_hover_item"]' )
-    #    href=a.get_attribute('href')
-
-    #1
-    PagesList = []
-    for i in range(63):
-        PageAddr = 'https://www.novostroy-m.ru/baza?page='+str(i+1)
-        PagesList.append(PageAddr)
-    print("Список страниц для обработки:")
-    print(PagesList)
-
-    # попробуем сделать обработку одной страницы
-    #lp = ListPage(PagesList[0])
-    #data = lp.execute()
-    #i = 0
-    #for elem in data:
-#        i += 1
-#        print('Ссылка № %d, адрес: %s'%(i, elem))
-
     start = datetime.now()
-    #2
-    data = PagesListHandler(PagesList, ListPage, WithProcesses=False)
-    print("Выводим результат:")
-    for i in range(len(data)):
-        print("***** ЖК из %d-ой страницы: "%i)
-        for j in range(len(data[i])):
-            print( "\tЖК № %d: %s" % (j, data[i][j]) )
+
+    lstPage = ListPage('https://www.novostroy-m.ru/baza')
+    data = lstPage.execute()
+    i = 0
+    for item in data:
+        i += 1
+        print( "№ %d. %s" %(i, item) )
 
     end = datetime.now()
-    #JKList = ['https://www.novostroy-m.ru/baza/zhk_flotiliya',
-    #    'https://www.novostroy-m.ru/baza/jk_mir_mitino',
-    #    'https://www.novostroy-m.ru/baza/jk_na_dushinskoy_ulitse',
-    #    'https://www.novostroy-m.ru/baza/apartkompleks_nahimov_nahimov',
-    #    'https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
-#
-#    JKList = ['https://www.novostroy-m.ru/baza/jk_ryazanskiy_prospekt_2']
-#    #wb = Head()
-#    data = PagesListHandler(JKList, OneJKHandler)
-#    print(data)
 
-    #wb.save('ex.xlsx')
     total = end - start
-
     print("Всё ОК! Всего затрачено времени: ", str(total))
+
+    print("Запись в файл...")
+    f = open('links.txt', 'w')
+    for item in data:
+        f.write(item+'\n')
+    f.close()
+    print("КОНЕЦ!")
