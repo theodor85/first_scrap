@@ -144,21 +144,19 @@ class ListPage(object):
 if __name__ == '__main__':
     start = datetime.now()
 
-    lstPage = ListPage('https://www.novostroy-m.ru/baza')
-    data = lstPage.execute()
-    i = 0
-    for item in data:
-        i += 1
-        print( "№ %d. %s" %(i, item) )
+    URLList = []
+    with open('links.txt', 'r') as f:
+        for link in f:
+            URLList.append(link)
+#    print(URLList)
+
+    data = PagesListHandler(URLList, OneJKHandler, WithProcesses=True, ProcessLimit = 5)
+    print(data)
 
     end = datetime.now()
 
     total = end - start
     print("Всё ОК! Всего затрачено времени: ", str(total))
 
-    print("Запись в файл...")
-    f = open('links.txt', 'w')
-    for item in data:
-        f.write(item+'\n')
-    f.close()
+
     print("КОНЕЦ!")

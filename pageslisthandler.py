@@ -17,19 +17,38 @@ def _WithoutProcesses(URLList, OnePageHandlerClass):
         data.append(Handler.execute())
     return data
 
-def _WithProcesses(URLList, OnePageHandlerClass):
+def _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit):
     data = []
     Handlers = []
     ProcessList = []
     q = Queue()
     i = 0
+    assert ProcessLimit > 0
     for URL in URLList:
         Handler = OnePageHandlerClass(URL)
-        p = Process(target=OnePageHandling, args=(Handler,q,))
-        ProcessList.append(p)
-        i += 1
-        print("Запускаем процесс № ", i)
-        p.start()
+        while True:
+            # узнаем число "живых" процессов
+            # если процесс "мертв", то удаляем его из списка
+            number_alive = 0
+            for j in range(len(ProcessList)):
+                if ProcessList[j].is_alive():
+                    number_alive += 1
+                else:
+                    ProcessList[j] = None
+            
+            # если число "живых" больше либо равно лимиту, то ждём
+            # иначе запускаем новый процесс и добавляем его в список
+            if number_alive >= ProcessLimit:
+                sleep(1)
+                continue
+            else:
+                p = Process(target=OnePageHandling, args=(Handler,q,))
+                ProcessList.append(p)
+                i += 1
+                print("Запускаем процесс № ", i)
+                p.start()
+                break
+
     # здесь надо подождать,пока все потоки не отработают
     print("Ожидаем завершение процессов...")
     while True:
@@ -48,9 +67,9 @@ def _WithProcesses(URLList, OnePageHandlerClass):
         data.append(q.get())
     return data
 
-def PagesListHandler(URLList, OnePageHandlerClass, WithProcesses=True):
+def PagesListHandler(URLList, OnePageHandlerClass, WithProcesses=True, ProcessLimit = 10):
 
     if WithProcesses:
-        return _WithProcesses(URLList, OnePageHandlerClass)
+        return _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit)
     else:
         return _WithoutProcesses(URLList, OnePageHandlerClass)
