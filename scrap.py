@@ -94,7 +94,7 @@ def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
 class OneJKHandler(object):
     def __init__(self, URL):
         self.URL = URL
-        self.UseSelenium = False
+        self.UseSelenium = True
     # это та самая функция, которую нужно изменять для каждой html-страницы
     def ExtractDataFromHtml(self, soup=None, driver=None):
 
@@ -137,6 +137,7 @@ class ListPage(object):
                 li = ul.find_element_by_class_name('next')
                 a = li.find_element_by_tag_name('a')
                 a.click()
+                break  # для тестирования.
                 sleep(3)
 
         return data
@@ -147,13 +148,13 @@ if __name__ == '__main__':
     start = datetime.now()
 
     URLList = []
-    with open('links.txt', 'r') as f:
-        i = 0
-        for link in f:
-            URLList.append(link)
-            i += 1
-            if i >= 100:
-                break
+    #with open('links.txt', 'r') as f:
+    #    i = 0
+    #    for link in f:
+    #        URLList.append(link)
+    #        i += 1
+    #        if i >= 0:
+    #            break
 
     # сделаем замеры времени 40 процессов, 20, 10, 5
     # здесь результаты (100 URL):
@@ -167,8 +168,11 @@ if __name__ == '__main__':
     #40         6:04            6:12          6:04          ~
     #100        ~
     #без МП     9:15
+    #URLList.append('http://abracadabra.blbl')
+    #data = PagesListHandler(URLList, OneJKHandler, WithProcesses=False, ProcessLimit = 10)
 
-    data = PagesListHandler(URLList, OneJKHandler, WithProcesses=True, ProcessLimit = 10)
+    jk_lst = ListPage('https://www.novostroy-m.ru/baza/')
+    data = jk_lst.execute()
     print(data)
 
     end = datetime.now()
