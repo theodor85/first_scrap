@@ -30,12 +30,14 @@ def _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit):
             # узнаем число "живых" процессов
             # если процесс "мертв", то удаляем его из списка
             number_alive = 0
-            for j in range(len(ProcessList)):
+            j = 0
+            while j<len(ProcessList):
                 if ProcessList[j].is_alive():
                     number_alive += 1
+                    j += 1
                 else:
-                    ProcessList[j] = None
-            
+                    del ProcessList[j]
+
             # если число "живых" больше либо равно лимиту, то ждём
             # иначе запускаем новый процесс и добавляем его в список
             if number_alive >= ProcessLimit:

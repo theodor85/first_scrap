@@ -99,9 +99,11 @@ class OneJKHandler(object):
     def ExtractDataFromHtml(self, soup=None, driver=None):
 
         data = {}
-        # получаем название ЖК
-        lst = soup.findAll("h1", {"class": "card_title", "itemprop": "name"})
-        data['JK_name'] = lst[0].get_text()
+        data['jk_name'] = soup.find("h1", {"class": "card_title", "itemprop": "name"}).get_text()
+        data['address'] = soup.find("div", {"class": "info_item"}).get_text().strip()
+        data['price'] = ' '.join( soup.find("div", {"class": "descrition_price_item"}).get_text().strip().split() )
+        div_table = soup.find("div", {"id": "house_content"})
+        data['1_kom_metres'] = div_table.find("div", {"class":"card_row_item ws_nw lh_24 fs_16"}).get_text().strip()
 
         return data
 
@@ -146,17 +148,31 @@ if __name__ == '__main__':
 
     URLList = []
     with open('links.txt', 'r') as f:
+        i = 0
         for link in f:
             URLList.append(link)
-#    print(URLList)
+            i += 1
+            if i >= 100:
+                break
 
-    data = PagesListHandler(URLList, OneJKHandler, WithProcesses=True, ProcessLimit = 5)
+    # сделаем замеры времени 40 процессов, 20, 10, 5
+    # здесь результаты (100 URL):
+    # 4 процесса - 13:22 (sleep(1))
+    # 40 процессов - 9:35    (без sleep)
+    #        без sleep       sleep(0.1)      sleep(0.5)     sleep(1)
+    #4          7:16            7:18          7:01          7:02
+    #5          7:05            7:21          6:43          6:52
+    #10         6:10            6:08          6:13          6:07
+    #20         6:06            6:19          6:38          6:11
+    #40         6:04            6:12          6:04          ~
+    #100        ~
+    #без МП     9:15
+
+    data = PagesListHandler(URLList, OneJKHandler, WithProcesses=True, ProcessLimit = 10)
     print(data)
 
     end = datetime.now()
 
     total = end - start
     print("Всё ОК! Всего затрачено времени: ", str(total))
-
-
     print("КОНЕЦ!")
