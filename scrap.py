@@ -96,7 +96,7 @@ class OneJKHandler(object):
         self.URL = URL
         self.UseSelenium = True
     # это та самая функция, которую нужно изменять для каждой html-страницы
-    def ExtractDataFromHtml(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, driver=None):
 
         data = {}
         data['jk_name'] = soup.find("h1", {"class": "card_title", "itemprop": "name"}).get_text()
@@ -112,7 +112,7 @@ class ListPage(object):
     def __init__(self, URL):
         self.URL = URL
         self.UseSelenium = True
-    def ExtractDataFromHtml(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, driver=None):
 
         data = []
 
@@ -161,11 +161,11 @@ if __name__ == '__main__':
     # 4 процесса - 13:22 (sleep(1))
     # 40 процессов - 9:35    (без sleep)
     #        без sleep       sleep(0.1)      sleep(0.5)     sleep(1)
-    #4          7:16            7:18          7:01          7:02
-    #5          7:05            7:21          6:43          6:52
-    #10         6:10            6:08          6:13          6:07
-    #20         6:06            6:19          6:38          6:11
-    #40         6:04            6:12          6:04          ~
+    # 4          7:16            7:18          7:01          7:02
+    # 5          7:05            7:21          6:43          6:52
+    # 10         6:10            6:08          6:13          6:07
+    # 20         6:06            6:19          6:38          6:11
+    # 40         6:04            6:12          6:04          ~
     #100        ~
     #без МП     9:15
     #URLList.append('http://abracadabra.blbl')

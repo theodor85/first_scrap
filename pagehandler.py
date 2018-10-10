@@ -9,7 +9,7 @@ from selenium import webdriver
 def PageHandlerDecorator(UserHandler):
     """Декоратор класса.
     В декорируемом классе необходимо определить:
-        метод ExtractDataFromHtml(self, soup=None, driver=None), в которой нужно прописать выборку
+        метод extract_data_from_html(self, soup=None, driver=None), в которой нужно прописать выборку
             данных из html-страницы
             soup - это объект BeautifulSoup
             driver - это объект selenium
@@ -21,15 +21,15 @@ def PageHandlerDecorator(UserHandler):
         """Класс обрабатывает один URL."""
         def __init__(self, URL):
             super().__init__(URL)
-            self.ProxiesList = self._GetProxiesList("proxy_list.txt")
-            self.UserAgentsList = self._GetUserAgentsList("useragents.txt")
+            self.ProxiesList = self._get_proxies_list("proxy_list.txt")
+            self.UserAgentsList = self._get_user_agents_list("useragents.txt")
 
         #загружает список User-Agent
-        def _GetUserAgentsList(self, filename):
+        def _get_user_agents_list(self, filename):
             return open(filename).read().strip().split('\n')
 
         #загружает список прокси-серверов
-        def _GetProxiesList(self, filename):
+        def _get_proxies_list(self, filename):
             return open(filename).read().strip().split('\n')
 
         def execute(self):
@@ -37,18 +37,13 @@ def PageHandlerDecorator(UserHandler):
             if self.UseSelenium:
                 driver = self._get_selenium_driver()
                 self._open_url_with_selenium(driver)
-                data = self._get_data_from_page(driver)
+                data = self._get_data_from_page_with_selenium(driver)
                 driver.close()
                 return data
             else:
-                # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
-                html = self._OpenURL()
-                if html == None:
-                    raise Exception("Ошибка: Не удалось открыть URL "+self.URL)
-                bsObj = BeautifulSoup(html.read(), features="html.parser")
-                # выбираем необходимые данные
-                data = self.ExtractDataFromHtml(soup=bsObj)
-                return data
+                return self._get_data_from_page_with_soup()
+
+#****************** Методы для работы с BeautifulSoup **************************
 
         def _get_selenium_driver(self):
             try:
@@ -64,10 +59,9 @@ def PageHandlerDecorator(UserHandler):
             except Exception as e:
                 print("*** Ошибка при открытии URL драйвером selenium! \n\tURL: {URL}\n\tТекст ошибки: {er_message}".format(URL=self.URL, er_message=str(e)))
 
-
-        def _get_data_from_page(self, driver):
+        def _get_data_from_page_with_selenium(self, driver):
             try:
-                data = self.ExtractDataFromHtml(driver=driver)
+                data = self.extract_data_from_html(driver=driver)
             except Exception as e:
                 print("*** Ошибка при обработке страницы с помощью selenium! \n\tURL: {URL}\n\tТекст ошибки: {er_message}".format(URL=self.URL, er_message=str(e)))
             return data
@@ -82,33 +76,46 @@ def PageHandlerDecorator(UserHandler):
             }
             return capabilities
 
-        def _OpenURL(self):
-            """Метод делает 10 попыток открыть URL с разных прокси.
-            Если открыть URL не удаётся, возвращется None. """
-            i = 0
-            while True:
-                i += 1
-                if i > 10:
-                    return None
-                #указываем прокси-сервер
-                proxy_name = choice(self.ProxiesList)
-                print(proxy_name)
-                proxy = ProxyHandler({'http':proxy_name})
-                opener = build_opener(proxy)
-                install_opener(opener)
-                # создаём объект запроса со случайным User-Agent
-                UAName = choice(self.UserAgentsList)
-                req = Request(self.URL, headers={'User-Agent':UAName})
-                try:
-                    # открываем URL
-                    html = urlopen(req)
-                    return html
-                except Exception as e:
-                    print("************* URL не открылся! ************************")
-                    print("Текст ошибки:", e)
-                    print("\tURL:", self.URL)
-                    print("\tПрокси:", proxy_name)
-                    print("\tUser-Agent:", UAName)
-                    continue
+#****************** Методы для работы с BeautifulSoup **************************
+
+        def _get_data_from_page_with_soup(self):
+
+            # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
+            # выбираем необходимые данные
+            html = self._open_URL().read()
+            try:
+                data = self.extract_data_from_html( soup=BeautifulSoup(html, features="html.parser") )
+            except Exception as e:
+                raise Exception("Не удалось извлечь данные со страницы! \n\tURL: {URL} \n\tТекст ошибки: ".format(URL=self.URL) + str(e))
+
+            return data
+
+        def _open_URL(self):
+
+            #указываем прокси-сервер, создаём объект запроса со случайным User-Agent
+            # и открываем URL
+            proxy = self._set_proxy()
+            UAName = choice(self.UserAgentsList)
+            req = Request(self.URL, headers={'User-Agent':UAName})
+            try:
+                html = urlopen(req)
+            except Exception as e:
+                raise Exception("""*** Ошибка при открытии URL функцией urlopen!
+                    URL:{URL}
+                    Прокси: {PROXY}
+                    User-Agent: {UA}
+                    Текст ошибки: """.format(
+                        URL=self.URL,
+                        PROXY=proxy.proxies['http'],
+                        UA=UAName)
+                            + str(e))
+            return html
+
+        def _set_proxy(self):
+            proxy_name = choice(self.ProxiesList)
+            proxy = ProxyHandler({'http':proxy_name})
+            opener = build_opener(proxy)
+            install_opener(opener)
+            return proxy
 
     return PageHandler
