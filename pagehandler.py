@@ -43,27 +43,26 @@ def PageHandlerDecorator(UserHandler):
             else:
                 return self._get_data_from_page_with_soup()
 
-#****************** Методы для работы с BeautifulSoup **************************
+#****************** Методы для работы с Selenium *******************************
 
         def _get_selenium_driver(self):
             try:
                 driver = webdriver.Chrome(desired_capabilities=self._set_capabilities())
-            except Exception as e:
-                print("*** Ошибка при открытии драйвера selenium! Текст ошибки: ", e)
-                raise Exception("*** Ошибка при открытии драйвера selenium! Текст ошибки: "+str(e))
+            except Exception as err:
+                raise SelenimDriverException("Ошибка при открытии драйвера selenium!", self.URL, err)
             return driver
 
         def _open_url_with_selenium(self, driver):
             try:
                 driver.get(self.URL)
-            except Exception as e:
-                print("*** Ошибка при открытии URL драйвером selenium! \n\tURL: {URL}\n\tТекст ошибки: {er_message}".format(URL=self.URL, er_message=str(e)))
+            except Exception as err:
+                raise UrlOpenWithSeleniumException("Не удалось отрыть URL драйвером Selenium!", self.URL, err)
 
         def _get_data_from_page_with_selenium(self, driver):
             try:
                 data = self.extract_data_from_html(driver=driver)
-            except Exception as e:
-                print("*** Ошибка при обработке страницы с помощью selenium! \n\tURL: {URL}\n\tТекст ошибки: {er_message}".format(URL=self.URL, er_message=str(e)))
+            except Exception as err:
+                raise ExtractDataWithSelenimException("Ошибка при извлечении данных со страницы с помощью selenium!", self.URL, err)
             return data
 
         def _set_capabilities(self):
@@ -119,3 +118,52 @@ def PageHandlerDecorator(UserHandler):
             return proxy
 
     return PageHandler
+
+#****************************** Исключения *************************************
+
+class PageHandlerException(Exception):
+    """Базовый класс для всех исключений."""
+    pass
+
+#****************************** Исключения для Selenium ************************
+
+class SeleniumException(PageHandlerException):
+    """Базовый класс для исключений, возникающих при работе драйвера Selenium."""
+    def __init__(self, Message, URL, Error):
+        super(SeleniumException, self).__init__(Message)
+        self.Message = Message
+        self.URL = URL
+        self.Error = Error
+
+    def __str__(self):
+        return "{msg}\n\tСообщение об ошибке: {err}\n\tНеобработан URL: {url}".format(msg=self.Message, err=self.Error, url=self.URL)
+
+class SelenimDriverException(SeleniumException):
+    pass
+
+class UrlOpenWithSeleniumException(SeleniumException):
+    pass
+
+class ExtractDataWithSelenimException(SeleniumException):
+    pass
+
+#********************* Исключения для BeautifulSoup ****************************
+
+class SoupException(PageHandlerException):
+    """Базовый класс для исключений, возникающих при работе с BeautifulSoup."""
+    def __init__(self, arg):
+        super(PageHandlerException, self).__init__()
+        self.arg = arg
+
+
+class ExtractDataWithSoupException(Exception):
+    """docstring for ExtractDataWithSoupException."""
+    def __init__(self, arg):
+        super(ExtractDataWithSoupException, self).__init__()
+        self.arg = arg
+
+class UrlOpenWithSoupException(Exception):
+    """docstring for UrlOpenWithSoupException."""
+    def __init__(self, arg):
+        super(UrlOpenWithSoupException, self).__init__()
+        self.arg = arg
