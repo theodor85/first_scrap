@@ -94,7 +94,7 @@ def OneJK(Workbook, URL, StringNum, proxy_name, useragent):
 class OneJKHandler(object):
     def __init__(self, URL):
         self.URL = URL
-        self.UseSelenium = True
+        self.UseSelenium = False
     # это та самая функция, которую нужно изменять для каждой html-страницы
     def extract_data_from_html(self, soup=None, driver=None):
 
@@ -142,12 +142,91 @@ class ListPage(object):
 
         return data
 
+# классы для flamp
+@PageHandlerDecorator
+class FirmsList(object):
+    def __init__(self, URL):
+        self.URL = URL
+        self.UseSelenium = True
+    def extract_data_from_html(self, soup=None, driver=None):
+
+        data = []
+
+        while True:
+            list_li = driver.find_elements_by_xpath( '//li[@class="list-cards__item list-cards__item--card"]' )
+
+            for li in list_li:
+
+                firm = {}
+
+                a = li.find_element_by_xpath( '//a[@class="card__link"]' )
+                # извлекаем из тега а текст - это название фирмы
+                firm_name = a.text.strip()
+                # переходимпо ссылке
+                a.click()
+                sleep(3)
+                # находим адрес сайта фирмы
+                web_site_li = driver.find_element_by_xpath( '//li[@class="filial-web__site"]' )
+                a = web_site_li.find_element_by_xpath( '//a[@class="link link--blue js-link"]' )
+                web_site = a.text
+
+                # сохраняем данные
+                firm['name'] = firm_name
+                firm['site'] = web_site
+
+                data.append(firm)
+
+                # возвращаемся назад
+                driver.back()
+
+
+            # находим жлемент "Далее" и кликаем на нём. Если его нет (он не активен)
+            # то выходим из цикла
+            try:
+                li_next_pagination = driver.find_element_by_xpath('//li[@class="pagination__item pagination__item--next"]')
+                a_next = li_next_pagination.find_element_by_xpath('//a[@class="pagination__link pagination__link--next js-pagination-link"]')
+                a_next.click()
+                sleep(3)
+            except:
+                break
+
+        return data
 
 #main
-if __name__ == '__main__':
-    start = datetime.now()
 
-    URLList = []
+def flamp():
+
+    # извлекаем названия фирм и их веб-сайты
+    firms = FirmsList("https://krasnoyarsk.flamp.ru/search/разработка%20программного%20обеспечения")
+    try:
+        data = firms.execute()
+    except Exception as e:
+        print(e)
+
+    print(data)
+
+    # пишем сразу в Ексель
+    wb = openpyxl.Workbook()
+    wb.active.title = "Фирмы"
+    sheet = wb.active
+
+    sheet['B2'] = "Название фирмы"
+    sheet['C2'] = "Web-сайт"
+
+    str_num = 3
+    for firm in data:
+        cell_name = 'B' + str(str_num)
+        cell_site = 'C' + str(str_num)
+        sheet[cell_name] = firm['name']
+        sheet[cell_site] = firm['site']
+
+    wb.save('Фирмы.xls')
+
+def main():
+    start = datetime.now()
+    flamp()
+
+    #URLList = []
     #with open('links.txt', 'r') as f:
     #    i = 0
     #    for link in f:
@@ -171,12 +250,15 @@ if __name__ == '__main__':
     #URLList.append('http://abracadabra.blbl')
     #data = PagesListHandler(URLList, OneJKHandler, WithProcesses=False, ProcessLimit = 10)
 
-    jk_lst = ListPage('https://www.novostroy-m.ru/baza/')
-    data = jk_lst.execute()
-    print(data)
+    # jk_lst = ListPage('https://www.novostroy-m.ru/baza/')
+    # data = jk_lst.execute()
+    # print(data)
 
     end = datetime.now()
 
     total = end - start
     print("Всё ОК! Всего затрачено времени: ", str(total))
     print("КОНЕЦ!")
+
+if __name__ == '__main__':
+    main()
