@@ -144,41 +144,22 @@ class ListPage(object):
 
 # классы для flamp
 @PageHandlerDecorator
-class FirmsList(object):
+class LinksToFirms(object):
     def __init__(self, URL):
         self.URL = URL
         self.UseSelenium = True
     def extract_data_from_html(self, soup=None, driver=None):
 
         data = []
-
         while True:
-            list_li = driver.find_elements_by_xpath( '//li[@class="list-cards__item list-cards__item--card"]' )
-
-            for li in list_li:
-
-                firm = {}
-
-                a = li.find_element_by_xpath( '//a[@class="card__link"]' )
-                # извлекаем из тега а текст - это название фирмы
-                firm_name = a.text.strip()
-                # переходимпо ссылке
-                a.click()
-                sleep(3)
-                # находим адрес сайта фирмы
-                web_site_li = driver.find_element_by_xpath( '//li[@class="filial-web__site"]' )
-                a = web_site_li.find_element_by_xpath( '//a[@class="link link--blue js-link"]' )
-                web_site = a.text
-
+            list_sections = driver.find_elements_by_xpath( '//section[@class="card card--basic js-card-link"]' )
+            print("Нашли список section")
+            for section in list_sections:
+                # извлекаем из тега а ссылку
+                link = 'https:' + section.get_attribute('data-url')
+                print("Найдена ссылка", link)
                 # сохраняем данные
-                firm['name'] = firm_name
-                firm['site'] = web_site
-
-                data.append(firm)
-
-                # возвращаемся назад
-                driver.back()
-
+                data.append(link)
 
             # находим жлемент "Далее" и кликаем на нём. Если его нет (он не активен)
             # то выходим из цикла
@@ -192,35 +173,100 @@ class FirmsList(object):
 
         return data
 
+
+                # находим адрес сайта фирмы
+                # web_site_li = driver.find_element_by_xpath( '//li[@class="filial-web__site"]' )
+                # print("Нашли тег web_site_li")
+                # web_site_a = web_site_li.find_element_by_xpath( '//a[@class="link link--blue js-link"]' )
+                # print("Нашли тег web_site_a")
+                # web_site = web_site_a.text
+                # print("Получили текст ссылки на веб-сайт")
+
+@PageHandlerDecorator
+class FirmPage(object):
+    """docstring for FirmPage."""
+    def __init__(self, URL):
+        self.URL = URL
+        self.UseSelenium = False
+    def extract_data_from_html(self, soup=None, driver=None):
+
+        data = {}
+        try:
+            data['name'] = soup.find("h1", {"class": "header-filial__name t-h3"}).get_text().strip()
+        except:
+            data['name'] = 'null'
+        try:
+            data['site'] = 'http://' + soup.find("a", {"class": "link link--blue js-link"}).get_text().strip()
+        except:
+            data['site'] = 'null'
+        return data
+
+@PageHandlerDecorator
+class YandexPage(object):
+    """docstring for ."""
+    def __init__(self, URL):
+        self.URL = URL
+        self.UseSelenium = False
+    def extract_data_from_html(self, soup=None, driver=None):
+        try:
+            message_no_result = soup.find("div", {"class": "misspell__message"}).get_text().strip()
+            return False
+        except:
+            return True
+
+
+
 #main
 
 def flamp():
 
     # извлекаем названия фирм и их веб-сайты
-    firms = FirmsList("https://krasnoyarsk.flamp.ru/search/разработка%20программного%20обеспечения")
-    try:
-        data = firms.execute()
-    except Exception as e:
-        print(e)
+    # firms = LinksToFirms("https://krasnoyarsk.flamp.ru/search/разработка%20программного%20обеспечения")
+    # try:
+    #     data = firms.execute()
+    # except Exception as e:
+    #     print(e)
+    #
+    # print(data)
+    #
+    # with open('flamp.txt', 'w') as f:
+    #    i = 0
+    #    for link in data:
+    #        f.write(link+'\n')
 
-    print(data)
+    # links = []
+    # with open('flamp.txt', 'r') as f:
+    #    for link in f:
+    #        links.append(link)
+    #
+    # firms = PagesListHandler(links, FirmPage, WithProcesses=True, ProcessLimit = 10)
+    # with open('firms.txt', 'w') as f:
+    #    for firm in firms:
+    #        f.write('{name}\t{site}\n'.format(name=firm['name'], site=firm['site']))
+
+    firms = []
+    with open('firms.txt', 'r') as f:
+       for str in f:
+           firm = {}
+           firm = str.split('\t')
+           url_list.append(firm[1])
 
     # пишем сразу в Ексель
-    wb = openpyxl.Workbook()
-    wb.active.title = "Фирмы"
-    sheet = wb.active
-
-    sheet['B2'] = "Название фирмы"
-    sheet['C2'] = "Web-сайт"
-
-    str_num = 3
-    for firm in data:
-        cell_name = 'B' + str(str_num)
-        cell_site = 'C' + str(str_num)
-        sheet[cell_name] = firm['name']
-        sheet[cell_site] = firm['site']
-
-    wb.save('Фирмы.xls')
+    # wb = openpyxl.Workbook()
+    # wb.active.title = "Фирмы"
+    # sheet = wb.active
+    #
+    # sheet['B2'] = "Название фирмы"
+    # sheet['C2'] = "Web-сайт"
+    #
+    # str_num = 3
+    # for firm in data:
+    #     cell_name = 'B' + str(str_num)
+    #     cell_site = 'C' + str(str_num)
+    #     sheet[cell_name] = firm['name']
+    #     sheet[cell_site] = firm['site']
+    #
+    # wb.save('Фирмы.xls')
 
 def main():
     start = datetime.now()
