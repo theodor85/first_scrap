@@ -6,7 +6,7 @@
 
 import openpyxl
 from pagehandler import PageHandlerDecorator
-from pageslisthandler import PagesListHandler
+from listhandler import PagesListHandler
 from datetime import datetime
 from time import sleep
 
@@ -206,13 +206,17 @@ class YandexPage(object):
     """docstring for ."""
     def __init__(self, URL):
         self.URL = URL
-        self.UseSelenium = False
+        self.UseSelenium = True
     def extract_data_from_html(self, soup=None, driver=None):
+        data = {}
+        data['url'] = self.URL[45:]
         try:
-            message_no_result = soup.find("div", {"class": "misspell__message"}).get_text().strip()
-            return False
+            message_no_result = driver.find_element_by_xpath( '//div[@class="misspell__message"]' )
+            data['python'] = False
+            return data
         except:
-            return True
+            data['python'] = True
+            return data
 
 
 
@@ -245,28 +249,63 @@ def flamp():
     #        f.write('{name}\t{site}\n'.format(name=firm['name'], site=firm['site']))
 
     firms = []
+    url_list = []
+    firms_list = []
     with open('firms.txt', 'r') as f:
-       for str in f:
+       for str_ in f:
            firm = {}
-           firm = str.split('\t')
-           url_list.append(firm[1])
+           firm['name'], firm['url'] = str_.strip().split('\t')
+           firms_list.append(firm)
+           url_list.append(firm['url'])
+
+    # очищаем список УРЛ-ов от значений 'null'
+    j = 0
+    while j<len(url_list):
+        if url_list[j] == 'null':
+            del url_list[j]
+        else:
+            j += 1
+            continue
+
+    for i in range(len(url_list)):
+        print(url_list[i])
+
+    # формируем ссылки на Яндекс https://yandex.ru/search/?text=python%20site%3Ahttp%3A%2F%2Fwww.intecmedia.ru
+    for i in range(len(url_list)):
+        url_list[i] = 'https://yandex.ru/search/?text=python%20site:' + url_list[i]
+
+    for i in range(len(url_list)):
+        print(url_list[i])
+
+    data = PagesListHandler(url_list, YandexPage, WithProcesses=True, ProcessLimit = 4)
+
+    print(data)
 
     # пишем сразу в Ексель
-    # wb = openpyxl.Workbook()
-    # wb.active.title = "Фирмы"
-    # sheet = wb.active
-    #
-    # sheet['B2'] = "Название фирмы"
-    # sheet['C2'] = "Web-сайт"
-    #
-    # str_num = 3
-    # for firm in data:
-    #     cell_name = 'B' + str(str_num)
-    #     cell_site = 'C' + str(str_num)
-    #     sheet[cell_name] = firm['name']
-    #     sheet[cell_site] = firm['site']
-    #
-    # wb.save('Фирмы.xls')
+    wb = openpyxl.Workbook()
+    wb.active.title = "Фирмы"
+    sheet = wb.active
+
+    sheet['B2'] = "Название фирмы"
+    sheet['C2'] = "Web-сайт"
+    sheet['D2'] = "Python"
+
+    str_num = 3
+    for firm in firms_list:
+        cell_name = 'B' + str(str_num)
+        cell_site = 'C' + str(str_num)
+        cell_python = 'D' + str(str_num)
+        sheet[cell_name] = firm['name']
+        sheet[cell_site] = firm['url']
+
+        for j in range(len(data)):
+            if data[j]['url'] == firm['url']:
+                if data[j]['python']:
+                    sheet[cell_python] = 'V'
+                break
+        str_num += 1
+
+    wb.save('Фирмы.xls')
 
 def main():
     start = datetime.now()
