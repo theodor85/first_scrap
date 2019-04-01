@@ -1,9 +1,5 @@
 #-*-coding: utf-8 -*-
 
-## TODO: 1. Сделать обработку списка ЖК через кликанье кнопки "Далее" - 1 п. -ОК, но на это ушло 1,5 часа
-#        2. Флаг processLimit и его работа - 2 п.
-#        3. Спарсить сайт с новостройками - 1 п.
-
 import openpyxl
 from pagehandler import PageHandlerDecorator
 from listhandler import PagesListHandler
