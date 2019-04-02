@@ -7,7 +7,7 @@ def OnePageHandling(Handler, queue):
     DataOnePage = Handler.execute()
     queue.put(DataOnePage)
 
-def _WithoutProcesses(URLList, OnePageHandlerClass):
+def _without_processes(URLList, OnePageHandlerClass):
     data = []
     i = 0
     for URL in URLList:
@@ -17,14 +17,24 @@ def _WithoutProcesses(URLList, OnePageHandlerClass):
         data.append(Handler.execute())
     return data
 
-def _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit):
+def _with_processes(URLList, OnePageHandlerClass, process_limit):
     data = []
     Handlers = []
     ProcessList = []
     q = Queue()
     i = 0
-    assert ProcessLimit > 0
+    # -------для отладки. Ограничитель количества урлов -----------------------
+    # k = 0
+    # k_max = 10
+    #--------------------------------------------------------------------------
     for URL in URLList:
+
+        # -------для отладки. Ограничитель количества урлов --------------------
+        # k += 1
+        # if k >= k_max:
+        #     break
+        #-----------------------------------------------------------------------
+
         Handler = OnePageHandlerClass(URL)
         while True:
             # узнаем число "живых" процессов
@@ -40,7 +50,7 @@ def _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit):
 
             # если число "живых" больше либо равно лимиту, то ждём
             # иначе запускаем новый процесс и добавляем его в список
-            if number_alive >= ProcessLimit:
+            if number_alive >= process_limit:
                 sleep(1)
                 continue
             else:
@@ -64,14 +74,15 @@ def _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit):
             continue
         else:
             break
+
     # извлекаем данные из очереди
     for i in range(0, q.qsize()):
         data.append(q.get())
     return data
 
-def PagesListHandler(URLList, OnePageHandlerClass, WithProcesses=True, ProcessLimit = 10):
+def list_handler(URLList, OnePageHandlerClass, with_processes=True, process_limit = 10):
 
-    if WithProcesses:
-        return _WithProcesses(URLList, OnePageHandlerClass, ProcessLimit)
+    if with_processes:
+        return _with_processes(URLList, OnePageHandlerClass, process_limit)
     else:
-        return _WithoutProcesses(URLList, OnePageHandlerClass)
+        return _without_processes(URLList, OnePageHandlerClass)

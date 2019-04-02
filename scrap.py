@@ -2,10 +2,11 @@
 
 import openpyxl
 from pagehandler import PageHandler
-from listhandler import PagesListHandler
+from listhandler import list_handler
 from datetime import datetime
 from time import sleep
 import re
+import os
 
 
 # аренда
@@ -26,26 +27,44 @@ class LinksGetter(PageHandler):
         return data
 
 #main
-def arenda():
+def arenda(page_number, first_step=True):
 
-    # первый этап - спарсить ссылки на предложения
-    # генерируем список ссылок
-    base_link = 'https://www.domofond.ru/arenda-studiy-krasnoyarsk-c3174?&Page='
-    links = [ base_link+str(i) for i in range(1, 11) ]
+    if first_step:
+        # первый этап - спарсить ссылки на квартиры
+        # генерируем список ссылок
+        base_link = 'https://www.domofond.ru/arenda-studiy-krasnoyarsk-c3174?&Page='
+        links = [ base_link+str(i) for i in range(1, page_number+1) ]
 
-    linksgetter = LinksGetter(links[9])
-    data = linksgetter.execute()
+        # получаем список списков
+        list_of_lists = list_handler(links, LinksGetter, with_processes=True, process_limit=10)
 
-    for link in data:
-        print(link)
+        # получаем плоский список
+        flats_list = []
+        for list in list_of_lists:
+            flats_list = flats_list + list
 
+        # записываем результат этого этапа в файл
+        filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
+        with open(filename, 'w') as f:
+            for flat in flats_list:
+                f.write( '{fl}\n'.format(fl=flat) )
+
+    # links = []
+    # with open('flamp.txt', 'r') as f:
+    #    for link in f:
+    #        links.append(link)
+    #
+    # firms = PagesListHandler(links, FirmPage, WithProcesses=True, ProcessLimit = 10)
+    # with open('firms.txt', 'w') as f:
+    #    for firm in firms:
+    #        f.write('{name}\t{site}\n'.format(name=firm['name'], site=firm['site']))
 
     # второй этап - спарсить данные по ссылкам
 
 
 def main():
     start = datetime.now()
-    arenda()
+    arenda(page_number=10, first_step=True)
     end = datetime.now()
 
     total = end - start
