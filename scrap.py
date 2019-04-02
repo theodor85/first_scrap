@@ -26,6 +26,25 @@ class LinksGetter(PageHandler):
 
         return data
 
+# класс для обработки страницы квартиры
+class FlatHandler(PageHandler):
+
+    def __init__(self, arg):
+        super(FlatHandler, self).__init__()
+        self.URL = URL
+        self.UseSelenium = False
+
+    def extract_data_from_html(self, soup=None, driver=None):
+
+        data = {}
+        a_items = soup.find_all( "a", class_=re.compile("long-item-card__item___ubItG") )
+        for a_item in a_items:
+            data.append( 'https://www.domofond.ru' + a_item['href'] )
+
+        return data
+
+
+
 #main
 def arenda(page_number, first_step=True):
 
@@ -60,11 +79,16 @@ def arenda(page_number, first_step=True):
     #        f.write('{name}\t{site}\n'.format(name=firm['name'], site=firm['site']))
 
     # второй этап - спарсить данные по ссылкам
+    links = []
+    filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
+    with open(filename, 'r') as f:
+       for link in f:
+           links.append(link.strip())
 
 
 def main():
     start = datetime.now()
-    arenda(page_number=10, first_step=True)
+    arenda(page_number=10, first_step=False)
     end = datetime.now()
 
     total = end - start
