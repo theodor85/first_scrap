@@ -5,6 +5,7 @@ from pagehandler import PageHandlerDecorator
 from listhandler import PagesListHandler
 from datetime import datetime
 from time import sleep
+import re
 
 
 # класс для использования в декораторе
@@ -61,7 +62,21 @@ class ListPage(object):
         return data
 
 # аренда
+@PageHandlerDecorator
+class LinksGetter(object):
 
+    def __init__(self, URL):
+        self.URL = URL
+        self.UseSelenium = False
+
+    def extract_data_from_html(self, soup=None, driver=None):
+
+        data = []
+        a_items = soup.find_all( "a", class_=re.compile("long-item-card__item___ubItG") )
+        for a_item in a_items:
+            data.append( 'https://www.domofond.ru' + a_item['href'] )
+
+        return data
 
 #main
 def arenda():
@@ -69,9 +84,12 @@ def arenda():
     # первый этап - спарсить ссылки на предложения
     # генерируем список ссылок
     base_link = 'https://www.domofond.ru/arenda-studiy-krasnoyarsk-c3174?&Page='
-    links = [ base_link+str(i) for i in range(1, 11)]
+    links = [ base_link+str(i) for i in range(1, 11) ]
 
-    for link in links:
+    linksgetter = LinksGetter(links[9])
+    data = linksgetter.execute()
+
+    for link in data:
         print(link)
 
 
