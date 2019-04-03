@@ -7,6 +7,7 @@ from datetime import datetime
 from time import sleep
 import re
 import os
+import json
 
 
 # аренда
@@ -29,7 +30,7 @@ class LinksGetter(PageHandler):
 # класс для обработки страницы квартиры
 class FlatHandler(PageHandler):
 
-    def __init__(self, arg):
+    def __init__(self, URL):
         super(FlatHandler, self).__init__()
         self.URL = URL
         self.UseSelenium = False
@@ -37,13 +38,60 @@ class FlatHandler(PageHandler):
     def extract_data_from_html(self, soup=None, driver=None):
 
         data = {}
-        a_items = soup.find_all( "a", class_=re.compile("long-item-card__item___ubItG") )
-        for a_item in a_items:
-            data.append( 'https://www.domofond.ru' + a_item['href'] )
+        data['name']    = soup.find('h1', class_='information__title___1nM29').get_text().strip()
+        data['price']   = soup.find('div', class_='information__price___2Lpc0').span.get_text().strip()
+
+        divs = soup.find('div', class_='detail-information__wrapper___FRRqm').find_all('div')
+        for div in divs:
+
+            spans = div.find_all('span')
+            if ( spans[0].get_text().strip() == 'Площадь'):
+                data['square'] = spans[1].get_text().strip()
+
+            if ( spans[0].get_text().strip() == 'Цена за м²:'):
+                data['price_per_meter'] = spans[1].get_text().strip()
+
+        full_addr = soup.find('a', class_='information__address___1ZM6d').get_text().strip()
+        addr_list = full_addr.split(',')
+        data['address'] = addr_list[0] + ', ' + addr_list[1] + ', '+ addr_list[2]
+        data['district'] = addr_list[3]
+
+        # Рейтинг района  [3,5]
+        data['area_rating'] =  soup.find('div', class_='area-rating__ratingNumber___1XZ04').get_text().strip()
+
+        # Год постройки   [1990]
+        # Этажность       [16]
+        # Перекрытия      [Железобетонные]
+        # Стены           [Панельные]
+        # Газ.плита       [Нет]
+        try:
+            divs = soup.find('div', class_='project-info__wrapper___2b0As').find_all('div')
+            for div in divs:
+
+                spans = div.find_all('span')
+                if ( spans[0].get_text().strip() == 'Год постройки:'):
+                    data['year'] = spans[1].get_text().strip()
+
+                if ( spans[0].get_text().strip() == 'Макс. этажность:'):
+                    data['floors'] = spans[1].get_text().strip()
+
+                if ( spans[0].get_text().strip() == 'Перекрытия:'):
+                    data['flooring'] = spans[1].get_text().strip()
+
+                if ( spans[0].get_text().strip() == 'Стены:'):
+                    data['walls'] = spans[1].get_text().strip()
+
+                if ( spans[0].get_text().strip() == 'Газ.плита:'):
+                    data['gas_cooker'] = spans[1].get_text().strip()
+
+        except Exception as e:
+            data['year'] = 'Информации нет'
+            data['floors'] = 'Информации нет'
+            data['flooring'] = 'Информации нет'
+            data['walls'] = 'Информации нет'
+            data['gas_cooker'] = 'Информации нет'
 
         return data
-
-
 
 #main
 def arenda(page_number, first_step=True):
@@ -68,16 +116,6 @@ def arenda(page_number, first_step=True):
             for flat in flats_list:
                 f.write( '{fl}\n'.format(fl=flat) )
 
-    # links = []
-    # with open('flamp.txt', 'r') as f:
-    #    for link in f:
-    #        links.append(link)
-    #
-    # firms = PagesListHandler(links, FirmPage, WithProcesses=True, ProcessLimit = 10)
-    # with open('firms.txt', 'w') as f:
-    #    for firm in firms:
-    #        f.write('{name}\t{site}\n'.format(name=firm['name'], site=firm['site']))
-
     # второй этап - спарсить данные по ссылкам
     links = []
     filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
@@ -85,10 +123,17 @@ def arenda(page_number, first_step=True):
        for link in f:
            links.append(link.strip())
 
+    result = list_handler(links, FlatHandler, with_processes=True, process_limit=10)
+
+    # выводим в json-файла
+    filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_rezult.json'
+    with open(filename, 'w') as f:
+        f.write( json.dumps(result, ensure_ascii=False, indent=4) )
+
 
 def main():
     start = datetime.now()
-    arenda(page_number=10, first_step=False)
+    arenda(page_number=9, first_step=True)
     end = datetime.now()
 
     total = end - start
