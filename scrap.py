@@ -123,7 +123,7 @@ def arenda(page_number, first_step=True):
        for link in f:
            links.append(link.strip())
 
-    result = list_handler(links, FlatHandler, with_processes=True, process_limit=10)
+    result = list_handler(links, FlatHandler, with_processes=True, process_limit=4)
 
     # выводим в json-файла
     filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_rezult.json'
