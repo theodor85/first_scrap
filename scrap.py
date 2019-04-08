@@ -104,12 +104,7 @@ def arenda(page_number, first_step=True):
         links = [ base_link+str(i) for i in range(1, page_number+1) ]
 
         # получаем список списков
-        list_of_lists = list_handler(links, LinksGetter, with_processes=True, process_limit=10)
-
-        # получаем плоский список
-        flats_list = []
-        for list in list_of_lists:
-            flats_list = flats_list + list
+        flats_list = list_handler(links, LinksGetter, with_processes=True, process_limit=10)
 
         # записываем результат этого этапа в файл
         filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
@@ -118,24 +113,25 @@ def arenda(page_number, first_step=True):
                 f.write( '{fl}\n'.format(fl=flat) )
 
     # второй этап - спарсить данные по ссылкам
+    print('Переходим ко второму этапу')
     links = []
     filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
     with open(filename, 'r') as f:
        for link in f:
            links.append(link.strip())
 
-    result = list_handler(links, FlatHandler, with_processes=False, process_limit=200)
+    result = list_handler(links, FlatHandler, with_processes=True, process_limit=5)
 
     # выводим в json-файла
     filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_rezult.json'
     with open(filename, 'w') as f:
-        f.write( json.dumps(result, ensure_ascii=False, indent=4) )
+        json.dump(result, f, ensure_ascii=False, indent=4 )
 
 
 def main():
     start = datetime.now()
-    arenda(page_number=9, first_step=True)
     #proxy_refresher()
+    arenda(page_number=9, first_step=True)
     end = datetime.now()
 
     total = end - start
