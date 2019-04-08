@@ -19,7 +19,6 @@ def _without_processes(URLList, OnePageHandlerClass):
 
 def _with_processes(URLList, OnePageHandlerClass, process_limit):
     data = []
-    Handlers = []
     ProcessList = []
     q = Queue()
     i = 0
