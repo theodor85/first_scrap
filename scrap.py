@@ -130,8 +130,8 @@ def arenda(page_number, first_step=True):
 
 def main():
     start = datetime.now()
-    #proxy_refresher()
-    arenda(page_number=9, first_step=True)
+    proxy_refresher()
+    arenda(page_number=10, first_step=True)
     end = datetime.now()
 
     total = end - start
