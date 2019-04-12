@@ -39,6 +39,7 @@ class FlatHandler(PageHandler):
     def extract_data_from_html(self, soup=None, driver=None):
 
         data = {}
+        data['link']    = self.URL
         data['name']    = soup.find('h1', class_='information__title___1nM29').get_text().strip()
         data['price']   = soup.find('div', class_='information__price___2Lpc0').span.get_text().strip()
 
@@ -85,7 +86,7 @@ class FlatHandler(PageHandler):
                 if ( spans[0].get_text().strip() == 'Газ.плита:'):
                     data['gas_cooker'] = spans[1].get_text().strip()
 
-        except Exception as e:
+        except:
             data['year'] = 'Информации нет'
             data['floors'] = 'Информации нет'
             data['flooring'] = 'Информации нет'
@@ -104,7 +105,12 @@ def arenda(page_number, first_step=True):
         links = [ base_link+str(i) for i in range(1, page_number+1) ]
 
         # получаем список списков
-        flats_list = list_handler(links, LinksGetter, with_processes=True, process_limit=10)
+        list_of_lists = list_handler(links, LinksGetter, with_processes=True, process_limit=10)
+
+        # получаем плоский список
+        flats_list = []
+        for list in list_of_lists:
+            flats_list = flats_list + list
 
         # записываем результат этого этапа в файл
         filename = os.path.dirname(os.path.realpath(__file__)) + '/data/arenda/flats_list.txt'
@@ -130,7 +136,7 @@ def arenda(page_number, first_step=True):
 
 def main():
     start = datetime.now()
-    proxy_refresher()
+    #proxy_refresher()
     arenda(page_number=10, first_step=True)
     end = datetime.now()
 

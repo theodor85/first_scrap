@@ -56,11 +56,11 @@ def _one_page_handling(handler, queue, process_count):
     logger = logging.getLogger('list_handler')
     
     URL = handler.URL
-    logger.info('Процесс номер {pr} начал обрабатывать URL {url}'.format(pr=str(process_count),url=URL))
+    logger.info('Процесс {pr}:\n\tНачало обработки URL\n\t{url}'.format(pr=str(process_count),url=URL))
 
     try:
         one_page_data = handler.execute()
-        logger.info('Процесс номер {pr} успешно обработал URL {url}'.format(pr=str(process_count),url=URL))
+        logger.info('Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(pr=str(process_count),url=URL))
         
         # если это первая запись во временный файл, то не нужна запятая
         need_comma = not is_no_json_data()
@@ -68,14 +68,12 @@ def _one_page_handling(handler, queue, process_count):
             if need_comma:
                 f.write(',\n')           
             json.dump(one_page_data, f, ensure_ascii=False, indent=4 )
-
-
-        
-        logger.info('Процесс номер {pr} успешно сохранил данные из URL {url} во временном файле'.format(pr=str(process_count),url=URL))
+  
+        logger.info('Процесс {pr}:\n\tУспешно сохранены данные во временном файле из URL\n\t{url} '.format(pr=str(process_count),url=URL))
 
     except Exception as e:
-        logger.warning('''Процесс номер {pr}: ошибка при обработке URL {url}.
-            Текст ошибки: {msg}. URL отправлен на повторную обработку.
+        logger.warning('''Процесс {pr}:\n\t Ошибка при обработке URL\n\t{url}.
+            Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
             '''.format(pr=str(process_count), url=URL, msg=e))
         queue.put(URL)
 
