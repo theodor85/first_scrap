@@ -103,7 +103,7 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
     q = Queue()
     process_count = 0
     # -------для отладки. Ограничитель количества урлов -----------------------
-    is_debag_limit = True
+    is_debag_limit = False
     debug_count = 0
     debug_limit = 10
     #--------------------------------------------------------------------------
