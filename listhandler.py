@@ -4,6 +4,7 @@ from time import sleep
 import random
 import logging
 import json
+from tqdm import tqdm
 
 # имя временного файла
 temp_file_name = 'temp.dat'
@@ -107,7 +108,7 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
     debug_count = 0
     debug_limit = 10
     #--------------------------------------------------------------------------
-    for URL in URLList:
+    for URL in tqdm(URLList):
         
         # -------для отладки. Ограничитель количества урлов --------------------
         if is_debag_limit:
@@ -129,7 +130,7 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
                 process_count += 1
                 p = Process(target=_one_page_handling, args=(handler,q,process_count))
                 process_list.append(p)
-                print("Запускаем процесс № ", process_count)
+                #print("Запускаем процесс № ", process_count)
                 p.start()
                 break
 
