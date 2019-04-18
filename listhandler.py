@@ -104,7 +104,7 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
     q = Queue()
     process_count = 0
     # -------для отладки. Ограничитель количества урлов -----------------------
-    is_debag_limit = False
+    is_debag_limit = True
     debug_count = 0
     debug_limit = 10
     #--------------------------------------------------------------------------
@@ -130,7 +130,6 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
                 process_count += 1
                 p = Process(target=_one_page_handling, args=(handler,q,process_count))
                 process_list.append(p)
-                #print("Запускаем процесс № ", process_count)
                 p.start()
                 break
 
@@ -152,7 +151,7 @@ def _wait_processes(process_list):
         else:
             break
 
-def _get_error_urls(errors_urls_queue):
+def _get_urls_with_errors(errors_urls_queue):
     
     errors_urls_list = []
     for i in range(0, errors_urls_queue.qsize()):
@@ -164,8 +163,8 @@ def _list_handling(URLList, OnePageHandlerClass, process_limit):
     
     process_list, errors_urls_queue = _url_list_loop(URLList, OnePageHandlerClass, process_limit)
     _wait_processes(process_list)
-    error_urls = _get_error_urls(errors_urls_queue)
-    return error_urls
+    urls_with_errors = _get_urls_with_errors(errors_urls_queue)
+    return urls_with_errors
 
     
 def _with_processes(URLList, OnePageHandlerClass, process_limit):
