@@ -17,7 +17,7 @@ First_scrap - это библиотека для мультипроцессно�
 
     git clone http://github.com/theodor85/first_scrap
     cd first_scrap
-    python setup.py
+    python setup.py develop
 
 ### 
 
