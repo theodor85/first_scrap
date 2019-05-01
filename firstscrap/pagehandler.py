@@ -8,17 +8,6 @@ from selenium import webdriver
 
 from abc import ABCMeta, abstractmethod
 
-# def PageHandlerDecorator(UserHandler):
-#     """Декоратор класса.
-#     В декорируемом классе необходимо определить:
-#         метод extract_data_from_html(self, soup=None, driver=None), в которой нужно прописать выборку
-#             данных из html-страницы
-#             soup - это объект BeautifulSoup
-#             driver - это объект selenium
-#         поле URL - инициализирующееся в конструкторе
-#         поле UseSelenium - инициализирующееся в конструкторе. Принимает значение Fаlse или True
-#     """
-
 class PageHandler(metaclass=ABCMeta):
     """Абстракнтый класс для обработки одного URL.
     В дочернем классе необходимо реализовать:
@@ -33,8 +22,8 @@ class PageHandler(metaclass=ABCMeta):
             поле UseSelenium - используется ли selenium (True) или BeautifulSoup (False)
     """
     def __init__(self):
-        self.ProxiesList = self._get_proxies_list("proxy_list.txt")
-        self.UserAgentsList = self._get_user_agents_list("useragents.txt")
+        self.ProxiesList = self._get_proxies_list("./firstscrap/proxy_list.txt")
+        self.UserAgentsList = self._get_user_agents_list("./firstscrap/useragents.txt")
 
     @abstractmethod
     def extract_data_from_html(self, soup=None, driver=None):
@@ -42,11 +31,16 @@ class PageHandler(metaclass=ABCMeta):
 
     #загружает список User-Agent
     def _get_user_agents_list(self, filename):
-        return open(filename).read().strip().split('\n')
+        return self._read_file(filename)
 
     #загружает список прокси-серверов
     def _get_proxies_list(self, filename):
-        return open(filename).read().strip().split('\n')
+        return self._read_file(filename)
+
+    def _read_file(self, filename):
+        with open(filename, 'r') as f:
+            data = f.read().strip().split('\n')
+        return data
 
     def execute(self):
 
