@@ -1,15 +1,14 @@
 #-*-coding: utf-8 -*-
 
 import openpyxl
-from pagehandler import PageHandler
-from listhandler import list_handler
+from firstscrap.pagehandler import PageHandler
+from firstscrap.listhandler import list_handler
 from datetime import datetime
 from time import sleep
 import re
 import os
 import json
-from proxyrefresh import proxy_refresher
-
+from firstscrap.proxyrefresh import proxy_refresher
 
 # аренда
 class LinksGetter(PageHandler):

@@ -27,7 +27,7 @@ To use the Selenium library opportunities, you must install the Google Chrome br
 
 To run the tests type in your console:
 
-    unittest bla-bla
+    python -m unittest -v tests/tests.py
 
 ## Contributing
 

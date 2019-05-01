@@ -22,7 +22,7 @@ setup(
         'tqdm==4.31.1',
         'typed-ast==1.3.1',
         'urllib3==1.23',
-        'wrapt==1.11.1]',
+        'wrapt==1.11.1',
     ],
     description="Scraping sites with multiprocessing, random proxies and user-agents",
 )
