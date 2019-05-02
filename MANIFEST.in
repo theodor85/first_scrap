@@ -1,0 +1,2 @@
+include firstscrap/proxy_list.txt
+include firstscrap/useragents.txt

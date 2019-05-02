@@ -13,7 +13,11 @@ To get started with the first_scrap library, activate (or create if necessary) y
     python3 -m venv env
     source ./env/bin/activate
 
-After that execute the commands in your console:
+To install First_scrap use pip package manager:
+
+    pip install firstscrap
+
+Another installing approach is getting source code from GitHub. For this execute the commands in your console:
 
     git clone http://github.com/theodor85/first_scrap
     cd first_scrap
