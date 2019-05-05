@@ -27,6 +27,8 @@ Another installing approach is getting source code from GitHub. For this execute
 
 To use the Selenium library opportunities, you must install the Google Chrome browser ([download here](http://#)) and chromedriver ([installation instructions](http://#)) on your system.
 
+Supporting for other brousers is planned.
+
 ## Running the tests
 
 To run the tests type in your console:
