@@ -33,20 +33,22 @@ First_scrap - это библиотека для мультипроцессно�
 
 `UseSelenium` - поле логического типа, определяет будет ли использоваться BeautifulSoup (значение `False`) или Selenium (значение `True`).
 
-Также необходимо определить метод `extract_data_from_html(self, soup=None, driver=None)`. В этом методе используйте 
+Также необходимо определить метод `extract_data_from_html(self, soup=None, selenium_driver=None)`. В этом методе используйте объект BeautifulSoup (`soup`) или Selenium (`selenium_driver`) для извлечения данных. 
+
+Пример приведен ниже.
 
 ```python
 from firstscrap.pagehandler import PageHandler
 
 # класс для обработки одной страницы
-class FlatHandler(PageHandler):
+class OnePageHandler(PageHandler):
 
     def __init__(self, URL):
         super(FlatHandler, self).__init__()
         self.URL = URL
         self.UseSelenium = False
 
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
 
         data = {}
         data['link']    = self.URL
@@ -61,6 +63,14 @@ data = handler.execute()
 ```
 В переменной `data` будут помещены выбранные с сайта данные.
 
+```python
+from firstscrap.listhandler import list_handler
+
+result = list_handler(list_of_links, OnePageHandler, with_processes=True, process_limit=5)
+```
+
+
+
 ### Необходимые компоненты
 
 Для использования возможностей бибиотеки Selenium необходимо установить в сиcтеме браузер Google Chrome ([скачать можно здесь](http://#)) и chromedriver ([инструкция по установке](http://#)).
@@ -72,6 +82,8 @@ data = handler.execute()
 Чтобы запустить тесты, введите в консоли:
 
     python -m unittest -v tests/tests.py
+
+Перед запуском тестов убедитесь, что ваше интернет-соединение активно.
 
 ## Как внести вклад в проект
 

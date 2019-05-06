@@ -35,6 +35,8 @@ To run the tests type in your console:
 
     python -m unittest -v tests/tests.py
 
+Before running the tests enjure that your internet connection is active.
+
 ## Contributing
 
 Merge you code to the 'develop' branch for contributing please.
