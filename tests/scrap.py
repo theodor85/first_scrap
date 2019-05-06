@@ -18,7 +18,7 @@ class LinksGetter(PageHandler):
         self.URL = URL
         self.UseSelenium = False
 
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
 
         data = []
         a_items = soup.find_all( "a", class_=re.compile("long-item-card__item___ubItG") )
@@ -35,7 +35,7 @@ class FlatHandler(PageHandler):
         self.URL = URL
         self.UseSelenium = False
 
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
 
         data = {}
         data['link']    = self.URL

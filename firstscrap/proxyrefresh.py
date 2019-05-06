@@ -9,7 +9,7 @@ class ProxyRefresher2ip(PageHandler):
         self.URL = 'https://2ip.ru/proxy/'
         self.UseSelenium = False
 
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
         data = []
         trs = soup.find_all('tr')
 

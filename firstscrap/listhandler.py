@@ -6,11 +6,11 @@ import logging
 import json
 from tqdm import tqdm
 
-# имя временного файла
-temp_file_name = 'temp.dat'
+# во временном файле хранятся данные, сохраняющиеся
+# "на лету", чтобы они не пропали при сбое 
+TEMP_FILE_NAME = 'temp.dat'
 
-# имя файла лога
-log_file_name = 'log.log'
+LOG_FILE_NAME = 'log.log'
 
 def _without_processes(URLList, OnePageHandlerClass):
     ''' Обработка списка URL-ов в простом цикле.  '''
@@ -32,7 +32,7 @@ def is_no_json_data():
     ''' Функция определяет, есть данные в json-файле или только открывающая скобочка.
     Это нужно для корректной записи данных: ставить запятую или нет. '''
     
-    with open(temp_file_name, 'r') as f:
+    with open(TEMP_FILE_NAME, 'r') as f:
         s = f.read()
     
     if s=='[':
@@ -65,7 +65,7 @@ def _one_page_handling(handler, queue, process_count):
         
         # если это первая запись во временный файл, то не нужна запятая
         need_comma = not is_no_json_data()
-        with open(temp_file_name, 'a') as f:
+        with open(TEMP_FILE_NAME, 'a') as f:
             if need_comma:
                 f.write(',\n')           
             json.dump(one_page_data, f, ensure_ascii=False, indent=4 )
@@ -172,7 +172,7 @@ def _with_processes(URLList, OnePageHandlerClass, process_limit):
     
     # создаём и очищаем временный файл,записываем туда 
     # первый знак json
-    with open(temp_file_name, 'w') as f:
+    with open(TEMP_FILE_NAME, 'w') as f:
         f.write('[')
 
     passes_count = 0
@@ -187,12 +187,12 @@ def _with_processes(URLList, OnePageHandlerClass, process_limit):
         passes_count += 1
 
     # записываем закрывающую скобочку, чтобы были корректные данные json
-    with open(temp_file_name, 'a') as f:
+    with open(TEMP_FILE_NAME, 'a') as f:
         f.write(']')    
 
     # возвращем сохраненную информацию
     data = {}
-    with open(temp_file_name, 'r') as f:
+    with open(TEMP_FILE_NAME, 'r') as f:
         data = json.load(f)
     
     return data 
@@ -203,7 +203,7 @@ def _set_log_options():
     logger = logging.getLogger('list_handler')
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(log_file_name)
+    fh = logging.FileHandler(LOG_FILE_NAME)
     fh.setLevel(logging.DEBUG)
 
     # create formatter and add it to the handlers

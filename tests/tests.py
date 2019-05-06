@@ -8,7 +8,7 @@ class Handler_classinform_1(PageHandler):
         self.URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
         self.UseSelenium = False
 
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
 
         data = []
 

@@ -11,10 +11,10 @@ from abc import ABCMeta, abstractmethod
 class PageHandler(metaclass=ABCMeta):
     """Абстракнтый класс для обработки одного URL.
     В дочернем классе необходимо реализовать:
-        метод extract_data_from_html(self, soup=None, driver=None), в которой нужно прописать выборку
+        метод extract_data_from_html(self, soup=None, selenium_driver=None), в которой нужно прописать выборку
             данных из html-страницы
             soup - это объект BeautifulSoup
-            driver - это объект selenium
+            selenium_driver - это объект selenium
         в конструкторе прописать вызов базового конструктора:
             super().__init__()
         в конструкторе определить поля:
@@ -26,7 +26,7 @@ class PageHandler(metaclass=ABCMeta):
         self.UserAgentsList = self._get_user_agents_list("./firstscrap/useragents.txt")
 
     @abstractmethod
-    def extract_data_from_html(self, soup=None, driver=None):
+    def extract_data_from_html(self, soup=None, selenium_driver=None):
         pass
 
     #загружает список User-Agent
@@ -70,7 +70,7 @@ class PageHandler(metaclass=ABCMeta):
 
     def _get_data_from_page_with_selenium(self, driver):
         try:
-            data = self.extract_data_from_html(driver=driver)
+            data = self.extract_data_from_html(selenium_driver=driver)
         except Exception as err:
             raise ExtractDataWithSelenimException("Ошибка при извлечении данных со страницы с помощью selenium!", self.URL, err)
         return data
