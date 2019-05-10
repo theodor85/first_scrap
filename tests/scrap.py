@@ -16,7 +16,7 @@ class LinksGetter(PageHandler):
     def __init__(self, URL):
         super().__init__()
         self.URL = URL
-        self.UseSelenium = False
+        self.use_selenium = False
 
     def extract_data_from_html(self, soup=None, selenium_driver=None):
 
@@ -33,7 +33,7 @@ class FlatHandler(PageHandler):
     def __init__(self, URL):
         super(FlatHandler, self).__init__()
         self.URL = URL
-        self.UseSelenium = False
+        self.use_selenium = False
 
     def extract_data_from_html(self, soup=None, selenium_driver=None):
 

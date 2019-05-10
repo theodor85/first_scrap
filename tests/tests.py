@@ -18,7 +18,7 @@ class Handler_classinform_BS(PageHandler):
     def __init__(self):
         super().__init__()
         self.URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
-        self.UseSelenium = False
+        self.use_selenium = False
 
     def extract_data_from_html(self, soup=None, selenium_driver=None):
 
@@ -35,7 +35,7 @@ class Handler_classinform_Selenium(PageHandler):
     def __init__(self):
         super().__init__()
         self.URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
-        self.UseSelenium = True
+        self.use_selenium = True
 
     def extract_data_from_html(self, soup=None, selenium_driver=None):
 

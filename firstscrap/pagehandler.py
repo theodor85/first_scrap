@@ -22,6 +22,8 @@ class PageHandler(metaclass=ABCMeta):
             поле UseSelenium - используется ли selenium (True) или BeautifulSoup (False)
     """
     def __init__(self):
+        self.use_selenium = False
+        self.URL = ''
         self.ProxiesList = self._get_proxies_list("./firstscrap/proxy_list.txt")
         self.UserAgentsList = self._get_user_agents_list("./firstscrap/useragents.txt")
 

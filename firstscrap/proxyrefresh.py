@@ -1,4 +1,4 @@
-from pagehandler import PageHandler
+from .pagehandler import PageHandler
 import os
 
 class ProxyRefresher2ip(PageHandler):
