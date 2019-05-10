@@ -19,7 +19,7 @@ class PageHandler(metaclass=ABCMeta):
             super().__init__()
         в конструкторе определить поля:
             поле URL - url-адрес страницы для обработки
-            поле UseSelenium - используется ли selenium (True) или BeautifulSoup (False)
+            поле use_selenium - используется ли selenium (True) или BeautifulSoup (False)
     """
     def __init__(self):
         self.use_selenium = False
@@ -46,7 +46,7 @@ class PageHandler(metaclass=ABCMeta):
 
     def execute(self):
 
-        if self.UseSelenium:
+        if self.use_selenium:
             driver = self._get_selenium_driver()
             self._open_url_with_selenium(driver)
             data = self._get_data_from_page_with_selenium(driver)
@@ -141,7 +141,6 @@ class PageHandler(metaclass=ABCMeta):
         install_opener(opener)
         return proxy
 
-#    return PageHandler
 
 #****************************** Исключения *************************************
 
@@ -176,7 +175,7 @@ class ExtractDataWithSelenimException(SeleniumException):
 class SoupException(PageHandlerException):
     """Базовый класс для исключений, возникающих при работе с BeautifulSoup."""
     def __init__(self, arg):
-        super(PageHandlerException, self).__init__()
+        super(SoupException, self).__init__()
         self.arg = arg
 
 

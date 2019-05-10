@@ -154,7 +154,7 @@ def _wait_processes(process_list):
 def _get_urls_with_errors(errors_urls_queue):
     
     errors_urls_list = []
-    for i in range(0, errors_urls_queue.qsize()):
+    for _ in range(0, errors_urls_queue.qsize()):
         errors_urls_list.append(errors_urls_queue.get())
     return errors_urls_list
 
