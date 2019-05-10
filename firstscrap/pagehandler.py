@@ -56,11 +56,32 @@ class PageHandler(metaclass=ABCMeta):
 #****************** Методы для работы с Selenium *******************************
 
     def _get_selenium_driver(self):
+        options = self._set_chrome_options()
+        capabilities = self._set_capabilities()
         try:
-            driver = webdriver.Chrome(desired_capabilities=self._set_capabilities())
+            driver = webdriver.Chrome(
+                desired_capabilities=capabilities, 
+                options=options)
         except Exception as err:
             raise SelenimDriverException("Ошибка при открытии драйвера selenium!", self.URL, err)
         return driver
+
+    def _set_capabilities(self):
+        # используем случайный proxy
+        proxy_name = choice(self.ProxiesList)
+        capabilities = webdriver.DesiredCapabilities.CHROME.copy()
+        capabilities['proxy'] = {
+            'httpProxy':proxy_name,
+            'proxyType':'MANUAL',
+        }
+        return capabilities
+
+    def _set_chrome_options(self):
+        # используем опции Chrome. 
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless') # режим без графического интерфейса
+        return options
+
 
     def _open_url_with_selenium(self, driver):
         try:
@@ -75,15 +96,6 @@ class PageHandler(metaclass=ABCMeta):
             raise ExtractDataWithSelenimException("Ошибка при извлечении данных со страницы с помощью selenium!", self.URL, err)
         return data
 
-    def _set_capabilities(self):
-        # используем случайный proxy
-        proxy_name = choice(self.ProxiesList)
-        capabilities = webdriver.DesiredCapabilities.CHROME.copy()
-        capabilities['proxy'] = {
-            'httpProxy':proxy_name,
-            'proxyType':'MANUAL',
-        }
-        return capabilities
 
 #****************** Методы для работы с BeautifulSoup **************************
 
