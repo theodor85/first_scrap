@@ -62,6 +62,24 @@ data = handler.execute()
 
 There are your extracted data in the `data` variable.
 
+To extract data from set of many same web-pages use the `list_handler` function:
+
+```python
+from firstscrap.listhandler import list_handler
+
+result = list_handler(list_of_links, OnePageHandler, with_processes=True, process_limit=5)
+```
+
+The function takes parametres:
+- `list_of_links` - list of links to pages from which data will be extracted;
+- `OnePageHandler` - descendant of `PageHandler` class, extracts data from one web-page;
+- `with_processes` - boolean parameter, if multiprocessing will be used;
+- `process_limit` - max number of processes.
+
+## What's under hood
+
+
+
 ### Prerequisites
 
 To use the Selenium library opportunities, you must install the Google Chrome browser ([download here](http://#)) and chromedriver ([installation instructions](http://#)) on your system.

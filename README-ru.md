@@ -70,7 +70,7 @@ from firstscrap.listhandler import list_handler
 result = list_handler(list_of_links, OnePageHandler, with_processes=True, process_limit=5)
 ```
 
-В функцию передаются следующие параметры:
+Функция принимает следующие параметры:
 - `list_of_links` - список ссылок на страницы, из которых извлекаются данные;
 - `OnePageHandler` - класс-потомок `PageHandler`, извлекающий данные из одной страницы;
 - `with_processes` - логический параметр, указывающий, применять ли многопроцессную обработку;
