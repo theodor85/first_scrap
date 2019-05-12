@@ -6,9 +6,51 @@ from bs4 import BeautifulSoup
 from random import choice
 from selenium import webdriver
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
-class PageHandler(metaclass=ABCMeta):
+# паттерн Стратегия для выбора бэкенда селениума
+# базовый класс для паттерна Стратегия
+class SeleniumBackendGetter(ABC):
+    
+    @abstractmethod
+    def get_selenium_driver(self):
+        pass
+
+# конкретная стратегия: используем Chrome и chromedriver
+class ChromeBackendGetter(SeleniumBackendGetter):
+    
+    def __init__(self, proxy_list):
+        self.proxy_list = proxy_list
+
+    def get_selenium_driver(self):
+        options = self._set_chrome_options()
+        capabilities = self._set_capabilities()
+        driver = webdriver.Chrome(
+                desired_capabilities=capabilities, 
+                options=options)
+        return driver
+
+    def _set_capabilities(self):
+        # используем случайный proxy
+        proxy_name = choice(self.proxy_list)
+        capabilities = webdriver.DesiredCapabilities.CHROME.copy()
+        capabilities['proxy'] = {
+            'httpProxy':proxy_name,
+            'proxyType':'MANUAL',
+        }
+        return capabilities
+
+    def _set_chrome_options(self):
+        # используем опции Chrome. 
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless') # режим без графического интерфейса
+        return options
+
+    
+    
+
+
+class PageHandler(ABC):
     """Абстракнтый класс для обработки одного URL.
     В дочернем классе необходимо реализовать:
         метод extract_data_from_html(self, soup=None, selenium_driver=None), в которой нужно прописать выборку
@@ -47,7 +89,11 @@ class PageHandler(metaclass=ABCMeta):
     def execute(self):
 
         if self.use_selenium:
-            driver = self._get_selenium_driver()
+
+            # в этом месте должен быть выбор класса, взависимости от настроек
+            driver_getter = ChromeBackendGetter(self.ProxiesList)
+
+            driver = self._get_selenium_driver(driver_getter)
             self._open_url_with_selenium(driver)
             data = self._get_data_from_page_with_selenium(driver)
             driver.close()
@@ -57,33 +103,13 @@ class PageHandler(metaclass=ABCMeta):
 
 #****************** Методы для работы с Selenium *******************************
 
-    def _get_selenium_driver(self):
-        options = self._set_chrome_options()
-        capabilities = self._set_capabilities()
+    def _get_selenium_driver(self, driver_getter):
+        
         try:
-            driver = webdriver.Chrome(
-                desired_capabilities=capabilities, 
-                options=options)
+            driver = driver_getter.get_selenium_driver()
         except Exception as err:
             raise SelenimDriverException("Ошибка при открытии драйвера selenium!", self.URL, err)
         return driver
-
-    def _set_capabilities(self):
-        # используем случайный proxy
-        proxy_name = choice(self.ProxiesList)
-        capabilities = webdriver.DesiredCapabilities.CHROME.copy()
-        capabilities['proxy'] = {
-            'httpProxy':proxy_name,
-            'proxyType':'MANUAL',
-        }
-        return capabilities
-
-    def _set_chrome_options(self):
-        # используем опции Chrome. 
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless') # режим без графического интерфейса
-        return options
-
 
     def _open_url_with_selenium(self, driver):
         try:
