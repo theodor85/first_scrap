@@ -1,0 +1,12 @@
+# Chrome, 
+selenium_backend = Chrome
+
+# опции для Chrome
+chrome_options_headless = True
+
+#
+привет,ыва = 2093483д
+прллвлв      =           gulfa
+
+
+

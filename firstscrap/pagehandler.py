@@ -90,7 +90,8 @@ class PageHandler(ABC):
 
         if self.use_selenium:
 
-            # в этом месте должен быть выбор класса, взависимости от настроек
+            # контекст паттерна Стратегия
+            # в этом месте должен быть выбор класса, в зависимости от настроек
             driver_getter = ChromeBackendGetter(self.ProxiesList)
 
             driver = self._get_selenium_driver(driver_getter)
