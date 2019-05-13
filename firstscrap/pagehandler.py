@@ -1,7 +1,7 @@
 #-*-coding: utf-8 -*-
 
-import urllib.request
-from urllib.request import urlopen, Request, ProxyHandler, build_opener, install_opener
+import requests
+
 from bs4 import BeautifulSoup
 from random import choice
 from selenium import webdriver
@@ -14,7 +14,7 @@ class SeleniumBackendGetter(ABC):
     
     @abstractmethod
     def get_selenium_driver(self):
-        pass
+        pass 
 
 # конкретная стратегия: используем Chrome и chromedriver
 class ChromeBackendGetter(SeleniumBackendGetter):
@@ -46,8 +46,7 @@ class ChromeBackendGetter(SeleniumBackendGetter):
         options.add_argument('--headless') # режим без графического интерфейса
         return options
 
-    
-    
+  
 
 
 class PageHandler(ABC):
@@ -132,7 +131,7 @@ class PageHandler(ABC):
 
         # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
         # выбираем необходимые данные
-        html = self._open_URL().read()
+        html = self._receive_html_from_URL()
         try:
             data = self.extract_data_from_html( soup=BeautifulSoup(html, features="html.parser") )
         except Exception as e:
@@ -140,33 +139,38 @@ class PageHandler(ABC):
 
         return data
 
-    def _open_URL(self):
+    def _receive_html_from_URL(self):
+        headers = self._get_headers()
+        proxy = self._get_proxy()
+        html = self._try_to_request(headers, proxy)
+        return html
 
-        #указываем прокси-сервер, создаём объект запроса со случайным User-Agent
-        # и открываем URL
-        proxy = self._set_proxy()
-        UAName = choice(self.UserAgentsList)
-        req = Request(self.URL, headers={'User-Agent':UAName})
+    def _get_headers(self):
+        headers = {
+            'user-agent': choice(self.UserAgentsList), 
+        }
+        return headers
+
+    def _get_proxy(self):
+        proxy = {
+            'http': choice(self.ProxiesList),
+        }
+        return proxy
+
+    def _try_to_request(self, headers, proxy):
         try:
-            html = urlopen(req)
+            response = requests.get(self.URL, proxies=proxy, headers=headers)
         except Exception as e:
-            raise Exception("""*** Ошибка при открытии URL функцией urlopen!
+            raise Exception("""*** Ошибка при открытии при выполнении http-запроса!
                 URL:{URL}
                 Прокси: {PROXY}
                 User-Agent: {UA}
                 Текст ошибки: """.format(
                     URL=self.URL,
-                    PROXY=proxy.proxies['http'],
-                    UA=UAName)
+                    PROXY=proxy['http'],
+                    UA=headers['user-agent'])
                         + str(e))
-        return html
-
-    def _set_proxy(self):
-        proxy_name = choice(self.ProxiesList)
-        proxy = ProxyHandler({'http':proxy_name})
-        opener = build_opener(proxy)
-        install_opener(opener)
-        return proxy
+        return response.text
 
 
 #****************************** Исключения *************************************
