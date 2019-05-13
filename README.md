@@ -24,7 +24,7 @@ Another installing approach is getting source code from GitHub. For this execute
     python setup.py develop
 
 ## How to use
-To extract data from one web-page create a class that derives from the `PageHandler` abstract class.
+To extract data from single web-page create a class that derives from the `PageHandler` abstract class.
 
 In your class, you must define a constructor in which you must call the base class constructor and define two instance fields: `URL` and `use_selenium`:
 
@@ -62,7 +62,7 @@ data = handler.execute()
 
 There are your extracted data in the `data` variable.
 
-To extract data from set of many same web-pages use the `list_handler` function:
+To extract data from list of many same web-pages use the `list_handler` function:
 
 ```python
 from firstscrap.listhandler import list_handler
@@ -78,11 +78,20 @@ The function takes parametres:
 
 ## What's under hood
 
+When extracting data from a single page:
 
+1. Random proxy server and user-agent are selected from the lists stored in the file.
+2. These proxies and user-agents are used to access the page we need.
+3. With BeautifulSoup or Selenium (depending on the use_selenium field), the data is retrieved from the page and returned by the ' execute ()`method.
+
+When extracting data from a page list:
+
+1. If the `with_processes = False` parameter, the program retrieves data one by one from all pages in the passed list. At the same time, a random proxy server and user-agent are used every time.
+2. Otherwise, the program starts processing each page in a separate process, and the number of processes running at the same time does not exceed `process_limit`.
 
 ### Prerequisites
 
-To use the Selenium library opportunities, you must install the Google Chrome browser ([download here](http://#)) and chromedriver ([installation instructions](http://#)) on your system.
+To use the Selenium library opportunities, you must install the Google Chrome browser ([download here](https://www.google.com/intl/ru_ALL/chrome/)) and chromedriver ([installation instructions](https://sites.google.com/a/chromium.org/chromedriver/getting-started)) on your system.
 
 Supporting for other brousers is planned.
 
@@ -99,6 +108,10 @@ Before running the tests enjure that your internet connection is active.
 Merge you code to the 'develop' branch for contributing please.
 
 Forks and pull requests are welcome! If you like first_scrap, do not forget to put a star!
+
+## Bug reports
+
+To bug report please mail to fedor_coder@mail.ru with tag "first_scrap bug reporting".
 
 ## License
 

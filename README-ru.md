@@ -109,6 +109,10 @@ result = list_handler(list_of_links, OnePageHandler, with_processes=True, proces
 
 Fork'и pull request'ы приветствуются! Если вам понравился first_scrap, не забудьте поставить звёздочку! 
 
+## Сообщения об ошибках
+
+Чтобы сообщить об ошибке, пожалуйста напишите мне на fedor_coder@mail.ru с пометкой в теме письма "first_scrap bug reporting".
+
 ## License
 
 Этот проект личензируетя под лицензией MIT. Подробнее смотрите файл [LICENSE.txt](LICENSE.txt)
