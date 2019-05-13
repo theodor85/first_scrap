@@ -29,6 +29,7 @@ setup(
         'tqdm==4.31.1',
         'typed-ast==1.3.1',
         'wrapt==1.11.1',
+        'urllib3==1.24.2',
         'requests==2.21.0',
         'requests-toolbelt==0.9.1',
     ],
