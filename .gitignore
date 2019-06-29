@@ -1,0 +1,7 @@
+env37
+build
+firstscrap.egg-info
+dist
+.vscode
+firstscrap/data
+__pycache__
