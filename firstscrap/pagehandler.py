@@ -1,12 +1,92 @@
 #-*-coding: utf-8 -*-
+import functools
+from random import choice
+from abc import ABC, abstractmethod
 
 import requests
-
 from bs4 import BeautifulSoup
-from random import choice
 from selenium import webdriver
 
-from abc import ABC, abstractmethod
+PROXY_LIST_FILENAME = './firstscrap/proxy_list.txt'
+USER_AGENTS_LIST_FILENAME = './firstscrap/useragents.txt'
+
+class pagehandler:
+    
+    def __call__(self, url, use_selenium=False):
+
+        self.use_selenium = use_selenium 
+        self.url = url
+        self.proxies_list = self._get_proxies_list(PROXY_LIST_FILENAME)
+        self.user_agents_list = self._get_user_agents_list(USER_AGENTS_LIST_FILENAME)
+
+        def decorator(func):
+            
+            @functools.wraps(func)
+            def execute():
+                
+                if self.use_selenium:
+                   pass
+                else:
+                    # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
+                    # выбираем необходимые данные
+                    html = self._receive_html_from_URL()
+                    try:
+                        data = func( soup=BeautifulSoup(html, features="html.parser") )
+                    except Exception as e:
+                        raise Exception("Не удалось извлечь данные со страницы! \n\tURL: {URL} \n\tТекст ошибки: ".format(URL=self.url) + str(e))
+
+                    return data
+
+            return execute
+
+        return decorator
+    
+    def _get_user_agents_list(self, filename):
+        ''' Загружает список User-Agent '''
+        return self._read_file(filename)
+
+    def _get_proxies_list(self, filename):
+        ''' загружает список прокси-серверов '''
+        return self._read_file(filename)
+
+    def _read_file(self, filename):
+        with open(filename, 'r') as f:
+            data = f.read().strip().split('\n')
+        return data        
+
+    def _receive_html_from_URL(self):
+        headers = self._get_headers()
+        proxy = self._get_proxy()
+        html = self._try_to_request(headers, proxy)
+        return html
+
+    def _get_headers(self):
+        headers = {
+            'user-agent': choice(self.user_agents_list), 
+        }
+        return headers
+
+    def _get_proxy(self):
+        proxy = {
+            'http': choice(self.proxies_list),
+        }
+        return proxy
+
+    def _try_to_request(self, headers, proxy):
+        try:
+            response = requests.get(self.url, proxies=proxy, headers=headers)
+        except Exception as e:
+            raise Exception("""*** Ошибка при открытии при выполнении http-запроса!
+                URL:{URL}
+                Прокси: {PROXY}
+                User-Agent: {UA}
+                Текст ошибки: """.format(
+                    URL=self.url,
+                    PROXY=proxy['http'],
+                    UA=headers['user-agent'])
+                        + str(e))
+        return response.text
+
 
 # паттерн Стратегия для выбора бэкенда селениума
 # базовый класс для паттерна Стратегия

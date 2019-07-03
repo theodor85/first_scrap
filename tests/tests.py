@@ -1,6 +1,8 @@
 import unittest
+
 from firstscrap.pagehandler import PageHandler 
 
+from firstscrap.pagehandler import pagehandler
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
@@ -11,6 +13,42 @@ from firstscrap.pagehandler import PageHandler
 # Sel - список стр. - без процессов | SeleniumListWithoutMPTest | -
 # BS - список стр. - c процессами   | BSListMPTest              | -
 # Sel - список стр. - c процессами  | SeleniumListMPTest        | -          
+
+TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
+
+ph = pagehandler()
+ph1 = pagehandler()
+
+@ph(url=TEST_URL, use_selenium=False)
+def get_data(soup=None):
+    data = []
+    h2 = soup.find( "h2" )
+    header = h2.get_text().strip()
+    data.append(header)
+    return data
+
+@ph1(url=TEST_URL, use_selenium=True)
+def get_data_selenium(selenium=None):
+    data = []
+    #selenium.get(self.URL)
+    h2 = selenium.find_element_by_tag_name( "h2" )
+    header = h2.text.strip()
+    data.append(header)
+    return data    
+
+CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
+   
+class BSOnePageTest_decors(unittest.TestCase):
+    def test_soup (self):
+        data = get_data()
+        self.assertEqual(data[0], CHECK_TEXT)
+
+class SeleniumOnePageTest_decors(unittest.TestCase):
+    def test_selenium(self):
+        data = get_data_selenium()
+        self.assertEqual(data[0], CHECK_TEXT)
+
+
 
 
 class Handler_classinform_BS(PageHandler):
