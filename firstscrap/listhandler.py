@@ -1,14 +1,11 @@
 #-*-coding: utf-8 -*-
 from multiprocessing import Process, Queue
+from threading import Thread
 from time import sleep
 import random
 import logging
 import json
 from tqdm import tqdm
-
-# во временном файле хранятся данные, сохраняющиеся
-# "на лету", чтобы они не пропали при сбое 
-TEMP_FILE_NAME = 'temp.dat'
 
 LOG_FILE_NAME = 'log.log'
 
@@ -28,20 +25,8 @@ def random_timeout():
     ''' Случайный тайм-аут от 0 до 5 секунд. '''
     sleep(random.randint(0, 5))
 
-def is_no_json_data():
-    ''' Функция определяет, есть данные в json-файле или только открывающая скобочка.
-    Это нужно для корректной записи данных: ставить запятую или нет. '''
-    
-    with open(TEMP_FILE_NAME, 'r') as f:
-        s = f.read()
-    
-    if s=='[':
-        return True
-    else:
-        return False
 
-
-def _one_page_handling(handler, queue, process_count):
+def _one_page_handling(handler, data_queue, errs_queue, process_count):
     ''' Эта функция запускается внутри процесса. '''
 
     # случайный тайм-аут
@@ -60,24 +45,14 @@ def _one_page_handling(handler, queue, process_count):
     logger.info('Процесс {pr}:\n\tНачало обработки URL\n\t{url}'.format(pr=str(process_count),url=URL))
 
     try:
-        one_page_data = handler.execute()
-        logger.info('Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(pr=str(process_count),url=URL))
-        
-        # если это первая запись во временный файл, то не нужна запятая
-        need_comma = not is_no_json_data()
-        with open(TEMP_FILE_NAME, 'a') as f:
-            if need_comma:
-                f.write(',\n')           
-            json.dump(one_page_data, f, ensure_ascii=False, indent=4 )
-  
-        logger.info('Процесс {pr}:\n\tУспешно сохранены данные во временном файле из URL\n\t{url} '.format(pr=str(process_count),url=URL))
-
+        data_queue.put(handler.execute())
     except Exception as e:
         logger.warning('''Процесс {pr}:\n\t Ошибка при обработке URL\n\t{url}.
             Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
             '''.format(pr=str(process_count), url=URL, msg=e))
-        queue.put(URL)
-
+        errs_queue.put(URL)
+    else:
+        logger.info('Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(pr=str(process_count),url=URL))
 
 
 def _get_number_alive(process_list):
@@ -96,15 +71,15 @@ def _get_number_alive(process_list):
     return number_alive
 
 
-def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
+def _url_list_loop(URLList, OnePageHandlerClass, data_queue, process_limit):
     ''' Осуществляет цикл по всем URL в списке и запускает процессы. '''
 
     #data = []
     process_list = []
-    q = Queue()
+    q_errs = Queue()
     process_count = 0
     # -------для отладки. Ограничитель количества урлов -----------------------
-    is_debag_limit = True
+    is_debag_limit = False
     debug_count = 0
     debug_limit = 10
     #--------------------------------------------------------------------------
@@ -128,13 +103,13 @@ def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
                 continue
             else:
                 process_count += 1
-                p = Process(target=_one_page_handling, args=(handler,q,process_count))
+                p = Thread(target=_one_page_handling, args=(handler, data_queue, q_errs, process_count))
                 process_list.append(p)
                 p.start()
                 break
 
 
-    return process_list, q
+    return process_list, q_errs
 
 def _wait_processes(process_list):
 
@@ -159,9 +134,9 @@ def _get_urls_with_errors(errors_urls_queue):
     return errors_urls_list
 
 
-def _list_handling(URLList, OnePageHandlerClass, process_limit):
+def _list_handling(URLList, OnePageHandlerClass, data_queue, process_limit):
     
-    process_list, errors_urls_queue = _url_list_loop(URLList, OnePageHandlerClass, process_limit)
+    process_list, errors_urls_queue = _url_list_loop(URLList, OnePageHandlerClass, data_queue, process_limit)
     _wait_processes(process_list)
     urls_with_errors = _get_urls_with_errors(errors_urls_queue)
     return urls_with_errors
@@ -169,12 +144,8 @@ def _list_handling(URLList, OnePageHandlerClass, process_limit):
     
 def _with_processes(URLList, OnePageHandlerClass, process_limit):
     ''' Осуществляет многопроцессную, многопроходную обработку списка URL-ов.  '''
-    
-    # создаём и очищаем временный файл,записываем туда 
-    # первый знак json
-    with open(TEMP_FILE_NAME, 'w') as f:
-        f.write('[')
 
+    data_queue = Queue()
     passes_count = 0
     passes_limit = 2
     while True:
@@ -183,19 +154,13 @@ def _with_processes(URLList, OnePageHandlerClass, process_limit):
         if not( URLList and (passes_count<=passes_limit) ):
             break
         else:
-            URLList = _list_handling(URLList, OnePageHandlerClass, process_limit)
-        passes_count += 1
+            URLList = _list_handling(URLList, OnePageHandlerClass, data_queue, process_limit)
+        passes_count += 1 
 
-    # записываем закрывающую скобочку, чтобы были корректные данные json
-    with open(TEMP_FILE_NAME, 'a') as f:
-        f.write(']')    
-
-    # возвращем сохраненную информацию
-    data = {}
-    with open(TEMP_FILE_NAME, 'r') as f:
-        data = json.load(f)
+    #возвращем сохраненную информацию
+    while not data_queue.empty():
+        yield data_queue.get()
     
-    return data 
     
 # ************************* Установка параметров логирования **************************
 

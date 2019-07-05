@@ -1,12 +1,17 @@
 #-*-coding: utf-8 -*-
 
 import requests
+import os
 
 from bs4 import BeautifulSoup
 from random import choice
 from selenium import webdriver
 
 from abc import ABC, abstractmethod
+
+
+PROXY_LIST_FILE_NAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list.txt'
+USER_AGENTS_FILE_NAME = os.path.dirname(os.path.realpath(__file__)) + '/useragents.txt'
 
 # паттерн Стратегия для выбора бэкенда селениума
 # базовый класс для паттерна Стратегия
@@ -65,8 +70,8 @@ class PageHandler(ABC):
     def __init__(self):
         self.use_selenium = False
         self.URL = ''
-        self.ProxiesList = self._get_proxies_list("./firstscrap/proxy_list.txt")
-        self.UserAgentsList = self._get_user_agents_list("./firstscrap/useragents.txt")
+        self.ProxiesList = self._get_proxies_list(PROXY_LIST_FILE_NAME)
+        self.UserAgentsList = self._get_user_agents_list(USER_AGENTS_FILE_NAME)
 
     @abstractmethod
     def extract_data_from_html(self, soup=None, selenium_driver=None):
