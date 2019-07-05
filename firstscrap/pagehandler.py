@@ -59,22 +59,41 @@ class SoupDataExtractor:
         return data
 
     def _do_request(self):
-        try:
-            response = requests.get(self.url, proxies=self.proxy, headers=self.headers)
-        except Exception as e:
-            raise Exception("""*** Ошибка при выполнении http-запроса!
+        
+        error_message = """*** Ошибка при выполнении http-запроса!
                 URL:{URL}
                 Прокси: {PROXY}
                 User-Agent: {UA}
-                Текст ошибки: """.format(
+                Тип ошибки: {err_type}
+                Текст ошибки: {msg}"""
+        
+        try:
+            response = requests.get(self.url, proxies=self.proxy, headers=self.headers)
+        except requests.exceptions.ConnectionError as e:
+            raise UrlOpenWithSoupException( 
+                error_message.format(
                     URL=self.url,
                     PROXY=self.proxy['http'],
-                    UA=self.headers['user-agent'])
-                        + str(e))
+                    UA=self.headers['user-agent'],
+                    err_type = type(e),
+                    msg=str(e),
+                )
+            )
+
         return response.text
 
     def _extract_data_with_soup(self, html):
-        return self.func( self.url, soup=BeautifulSoup(html, features="html.parser") )
+        try:
+            data = self.func( self.url, soup=BeautifulSoup(html, features="html.parser") )
+        except Exception as e:
+            raise ExtractDataWithSoupException("""*** Ошибка при извлечении данных из веб-страницы!
+                URL:{URL}
+                Текст ошибки: {msg}""".format(
+                    URL=self.url,
+                    msg=str(e),
+                )
+            )
+        return data 
 
 
 def pagehandler(use_selenium=False):
@@ -92,17 +111,6 @@ def pagehandler(use_selenium=False):
         return execute
 
     return decorator
-
-
-       
-
-    def _receive_html_from_URL(self):
-        headers = self._get_headers()
-        proxy = self._get_proxy()
-        html = self._try_to_request(headers, proxy)
-        return html
-
-        
 
 
 # паттерн Стратегия для выбора бэкенда селениума
@@ -300,21 +308,8 @@ class ExtractDataWithSelenimException(SeleniumException):
 
 #********************* Исключения для BeautifulSoup ****************************
 
-class SoupException(PageHandlerException):
-    """Базовый класс для исключений, возникающих при работе с BeautifulSoup."""
-    def __init__(self, arg):
-        super(SoupException, self).__init__()
-        self.arg = arg
-
-
 class ExtractDataWithSoupException(Exception):
-    """docstring for ExtractDataWithSoupException."""
-    def __init__(self, arg):
-        super(ExtractDataWithSoupException, self).__init__()
-        self.arg = arg
+    pass
 
 class UrlOpenWithSoupException(Exception):
-    """docstring for UrlOpenWithSoupException."""
-    def __init__(self, arg):
-        super(UrlOpenWithSoupException, self).__init__()
-        self.arg = arg
+    pass
