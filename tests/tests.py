@@ -1,17 +1,17 @@
 import unittest
 
-from firstscrap.pagehandler import PageHandler 
+from firstscrap.listhandler import ListHandler
 
 from firstscrap.pagehandler import pagehandler
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
 # BS - одиночная страница           | BSOnePageTest             | OK
-# Selenium - одиночая стр.          | SeleniumOnePageTest       | OK
+# Selenium - одиночая стр.          | SeleniumOnePageTest       | -
 #-----------------------------------------------------------------------
 # BS - список стр. - без процессов  | BSListWithoutMPTest       | -
 # Sel - список стр. - без процессов | SeleniumListWithoutMPTest | -
-# BS - список стр. - c процессами   | BSListMPTest              | -
+# BS - список стр. - c процессами   | BSListMPTest              | *
 # Sel - список стр. - c процессами  | SeleniumListMPTest        | -          
 
 TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
@@ -32,10 +32,48 @@ def get_data_selenium(url, selenium=None):
     return data    
 
    
-class BSOnePageTest_decors(unittest.TestCase):
+class BSOnePageTest(unittest.TestCase):
     def test_soup (self):
         data = get_data(TEST_URL)
         self.assertEqual(next(data), CHECK_TEXT)
+
+
+# ************* Тестируем извлечение данных из списка url *************************
+# сайт olx.ua
+
+TEST_URL_OLX = 'https://www.olx.ua/rabota/telekommunikatsii-svyaz/'
+
+@pagehandler(use_selenium=False)
+def get_links(url, soup=None):
+    ''' Извлекает ссылки на объявления '''
+    links = []
+    a_tags = soup.find_all( "a", class_="marginright5 link linkWithHash detailsLink")
+    for a in a_tags:
+        links.append(a['href']) 
+    return links
+
+@pagehandler(use_selenium=False)
+def get_date_time_from_olx(url, soup=None):
+    ''' Получает строку, содержащую дату и время публикации объявления '''
+    em = soup.find('em')
+    row_text = em.get_text().strip()
+    return row_text
+
+class BSListMPTest(unittest.TestCase):
+    
+    def get_urls(self):
+        self.urls = get_links(TEST_URL_OLX)
+    
+    def test_soup(self):
+        lh = ListHandler(self.urls, get_date_time_from_olx, with_treads=True, treads_limit=100)
+        data = lh.execute()
+        for item in data:
+            print(item)
+            self.assertRegex(item, r'([0-1]\d|2[0-3])(:[0-5]\d)')  # время HH:MM
+            self.assertRegex(item, r'\d{1,}\s([а-яА-ЯёЁ]){1,}\s\d\d\d\d')  # дата 29 июня 2019  2 июля 2019
+        
+#**************************************************************************************************
+
 
 
 class SeleniumOnePageTest_decors(unittest.TestCase):
