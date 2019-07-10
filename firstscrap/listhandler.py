@@ -1,149 +1,198 @@
 #-*-coding: utf-8 -*-
-from multiprocessing import Process, Queue
+from threading import Thread
+from multiprocessing import Queue
 from time import sleep
 import random
 import logging
 import json
+
 from tqdm import tqdm
 
-# во временном файле хранятся данные, сохраняющиеся
-# "на лету", чтобы они не пропали при сбое 
-TEMP_FILE_NAME = 'temp.dat'
 
 LOG_FILE_NAME = 'log.log'
 
-def _without_processes(URLList, OnePageHandlerClass):
-    ''' Обработка списка URL-ов в простом цикле.  '''
-    data = []
-    i = 0
-    for URL in URLList:
-        i += 1
-        handler = OnePageHandlerClass(URL)
-        print("Обрабатываем страницу № %d, URL: %s"%(i, URL))
-        data.append(handler.execute())
-    return data
+
+# def _without_processes(URLList, OnePageHandlerClass):
+#     ''' Обработка списка URL-ов в простом цикле.  '''
+#     data = []
+#     i = 0
+#     for URL in URLList:
+#         i += 1
+#         handler = OnePageHandlerClass(URL)
+#         print("Обрабатываем страницу № %d, URL: %s"%(i, URL))
+#         data.append(handler.execute())
+#     return data
 
 #************************** Многопоточная обработка *****************************
-def random_timeout():
-    ''' Случайный тайм-аут от 0 до 5 секунд. '''
-    sleep(random.randint(0, 5))
 
-def is_no_json_data():
-    ''' Функция определяет, есть данные в json-файле или только открывающая скобочка.
-    Это нужно для корректной записи данных: ставить запятую или нет. '''
+class ListHandler:
+
+    def __init__(self, urls, func, with_threads=True, threads_limit=100):
+        _set_log_options()
+        self.urls = urls
+        self.func = func
+        self.with_threads = with_threads
+        self.threads_limit = threads_limit
     
-    with open(TEMP_FILE_NAME, 'r') as f:
-        s = f.read()
-    
-    if s=='[':
-        return True
-    else:
-        return False
+    def execute(self):
+        if self.with_threads:
+            data = self._execute_with_threads()
+        else:
+            data = self._execute_without_threads()
+        return data
 
-
-def _one_page_handling(handler, queue, process_count):
-    ''' Эта функция запускается внутри процесса. '''
-
-    # случайный тайм-аут
-    # лог: начало работы
-    # запуск обработчика страницы c try/catch
-    # лог: успешно/неуспешно с сообщением об ошибке
-    #     запись результата в JSON-файл
-    #     лог: данные успешно записаны в файл
-    # если не успешно:
-    #     URL заносится в очередь на повторную обработку,
-    #     лог: URL записан на повторную обработку
-    random_timeout()
-    logger = logging.getLogger('list_handler')
-    
-    URL = handler.URL
-    logger.info('Процесс {pr}:\n\tНачало обработки URL\n\t{url}'.format(pr=str(process_count),url=URL))
-
-    try:
-        one_page_data = handler.execute()
-        logger.info('Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(pr=str(process_count),url=URL))
+    def _execute_with_threads(self):
+        ''' Запускает поток, который запускает рабочие потоки. Затем
+        вынимает из очереди результаты. '''
         
-        # если это первая запись во временный файл, то не нужна запятая
-        need_comma = not is_no_json_data()
-        with open(TEMP_FILE_NAME, 'a') as f:
-            if need_comma:
-                f.write(',\n')           
-            json.dump(one_page_data, f, ensure_ascii=False, indent=4 )
-  
-        logger.info('Процесс {pr}:\n\tУспешно сохранены данные во временном файле из URL\n\t{url} '.format(pr=str(process_count),url=URL))
+        # сюда потоки будут складывать данные, затем отсюда мы их будем 
+        # доставать
+        data_queue = Queue() 
+        
+        input_data = {
+            'data_queue': data_queue,
+            'urls_list': self.urls,
+            'work_function': self.func,
+            'threads_limit': self.threads_limit,
+        }
 
-    except Exception as e:
-        logger.warning('''Процесс {pr}:\n\t Ошибка при обработке URL\n\t{url}.
-            Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
-            '''.format(pr=str(process_count), url=URL, msg=e))
-        queue.put(URL)
+        thread_launcher = Thread(target=launch_threads, args=(), kwargs=input_data)
+        thread_launcher.start()
+
+        # вынимаем в бесконечном цикле результаты из очереди,
+        # условие выхода: поток закончил работу И очередь пуста
+        while True:
+            if data_queue.empty():
+                if not thread_launcher.is_alive():
+                    break
+                sleep(0.1)
+            else:
+                yield data_queue.get()
+                
+
+    def _execute_without_threads(self):
+        data = []
+        return data
 
 
+def launch_threads(**input_data):
+    passes_count = 0
+    passes_limit = 2
+    urls_list = list(input_data['urls_list'])
+    while True:
+        # если список URL-ов пустой, или превышен предел количества проходов,
+        # то завершаем работу 
+        if not( urls_list and (passes_count<=passes_limit) ):
+            break
+        else:
+            urls_list = _list_handling(urls_list, input_data)
+        passes_count += 1
 
-def _get_number_alive(process_list):
-    ''' Узнаёт число "живых" процессов
-    если процесс "мертв", то удаляем его из списка. '''
+
+def _list_handling(urls_list, input_data):
+    ''' Запускает цикл обработки, ожидает завершения процессов,
+    извлекает и возвращает список завершившихся с ошибкой url-ов 
+    на повторную обработку. '''
+    
+    threads_list, urls_for_reprocess_queue = _url_list_loop(urls_list, input_data)
+    _waiting_for_threads_completion(threads_list)
+    urls_for_reprocess = _extract_urls_for_reprocess(urls_for_reprocess_queue)
+    return urls_for_reprocess
+
+
+def _url_list_loop(urls_list, input_data):
+    ''' Осуществляет цикл по всем URL в списке и запускает процессы. '''
+
+    threads_list = []
+    urls_for_reprocess_queue = Queue()
+    threads_count = 0
+
+    for url in tqdm(urls_list):   # tqdm показывает прогресс-бар
+        while True:
+            number_alive = _get_number_alive(threads_list)
+            # Если число "живых" больше либо равно лимиту, то ждём
+            # иначе запускаем новый процесс и добавляем его в список.
+            if number_alive >= input_data['threads_limit']:
+                sleep(1)
+                continue
+            else:
+                threads_count += 1
+                input_data['url'] = url
+                input_data['threads_count'] = threads_count
+                input_data['urls_for_reprocessing_queue'] = urls_for_reprocess_queue
+                t = Thread(target=_one_page_handling, args=(), kwargs=input_data)
+                threads_list.append(t)
+                t.start()
+                break
+
+    return threads_list, urls_for_reprocess_queue
+
+
+def _get_number_alive(threads_list):
+    ''' Узнаёт число "живых" потоков
+    если поток "мертв", то удаляем его из списка. '''
 
     number_alive = 0
     j = 0
-    while j<len(process_list):
-        if process_list[j].is_alive():
+    while j<len(threads_list):
+        if threads_list[j].is_alive():
             number_alive += 1
             j += 1
         else:
-            del process_list[j]
+            del threads_list[j]
 
     return number_alive
 
 
-def _url_list_loop(URLList, OnePageHandlerClass, process_limit):
-    ''' Осуществляет цикл по всем URL в списке и запускает процессы. '''
+def _one_page_handling(**input_data):
+    ''' Эта функция запускается внутри рабочего потока. '''
 
-    #data = []
-    process_list = []
-    q = Queue()
-    process_count = 0
-    # -------для отладки. Ограничитель количества урлов -----------------------
-    is_debag_limit = True
-    debug_count = 0
-    debug_limit = 10
-    #--------------------------------------------------------------------------
-    for URL in tqdm(URLList):
-        
-        # -------для отладки. Ограничитель количества урлов --------------------
-        if is_debag_limit:
-            debug_count += 1
-            if debug_count >= debug_limit:
-                break
-        #-----------------------------------------------------------------------
+    random_timeout()  # чтобы не заддосить сервер
+    logger = logging.getLogger('list_handler')
+    work_function = input_data['work_function']
+    data_queue = input_data['data_queue']
 
-        handler = OnePageHandlerClass(URL)
-        while True:
+    url = input_data['url']
+    threads_count = input_data['threads_count']
+    urls_for_reprocessing_queue = input_data['urls_for_reprocessing_queue']
+    
+    logger.info(
+        'Процесс {pr}:\n\tНачало обработки URL\n\t{url}'.format(
+            pr=str(threads_count),url=url
+            )
+        )
 
-            number_alive = _get_number_alive(process_list)
-            # Если число "живых" больше либо равно лимиту, то ждём
-            # иначе запускаем новый процесс и добавляем его в список.
-            if number_alive >= process_limit:
-                sleep(1)
-                continue
-            else:
-                process_count += 1
-                p = Process(target=_one_page_handling, args=(handler,q,process_count))
-                process_list.append(p)
-                p.start()
-                break
+    try:
+        one_page_data = work_function(url)  # здесь нужно добавить прокси и юзер-агент
+    except Exception as e:
+        logger.warning('''Процесс {pr}:\n\t Ошибка при обработке URL\n\t{url}.
+            Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
+            '''.format(
+                pr=str(threads_count), url=url, msg=e,
+                )
+            )
+        urls_for_reprocessing_queue.put(url)
+    else:
+        logger.info(
+            'Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(
+                pr=str(threads_count), url=url
+                )
+            )
+        data_queue.put(one_page_data)
 
 
-    return process_list, q
+def random_timeout():
+    ''' Случайный тайм-аут от 0 до 5 секунд. '''
+    sleep(random.randint(0, 5))
 
-def _wait_processes(process_list):
 
-    print("Ожидаем завершение процессов...")
+def _waiting_for_threads_completion(threads_list):
+    print("Ожидаем завершение потоков...")
     while True:
         alive_is_here = False
         sleep(1)
-        for i in range(0, len(process_list)):
-            if process_list[i].is_alive():
+        for i in range(0, len(threads_list)):
+            if threads_list[i].is_alive():
                 alive_is_here = True
                 break
         if alive_is_here:
@@ -151,52 +200,15 @@ def _wait_processes(process_list):
         else:
             break
 
-def _get_urls_with_errors(errors_urls_queue):
+
+def _extract_urls_for_reprocess(urls_for_reprocess_queue):
     
-    errors_urls_list = []
-    for _ in range(0, errors_urls_queue.qsize()):
-        errors_urls_list.append(errors_urls_queue.get())
-    return errors_urls_list
+    urls_for_reprocess_list = []
+    for _ in range(0, urls_for_reprocess_queue.qsize()):
+        urls_for_reprocess_list.append(urls_for_reprocess_queue.get())
+    return urls_for_reprocess_list
 
 
-def _list_handling(URLList, OnePageHandlerClass, process_limit):
-    
-    process_list, errors_urls_queue = _url_list_loop(URLList, OnePageHandlerClass, process_limit)
-    _wait_processes(process_list)
-    urls_with_errors = _get_urls_with_errors(errors_urls_queue)
-    return urls_with_errors
-
-    
-def _with_processes(URLList, OnePageHandlerClass, process_limit):
-    ''' Осуществляет многопроцессную, многопроходную обработку списка URL-ов.  '''
-    
-    # создаём и очищаем временный файл,записываем туда 
-    # первый знак json
-    with open(TEMP_FILE_NAME, 'w') as f:
-        f.write('[')
-
-    passes_count = 0
-    passes_limit = 2
-    while True:
-        # если список URL-ов пустой, или превышен предел количества проходов,
-        # то завершаем работу 
-        if not( URLList and (passes_count<=passes_limit) ):
-            break
-        else:
-            URLList = _list_handling(URLList, OnePageHandlerClass, process_limit)
-        passes_count += 1
-
-    # записываем закрывающую скобочку, чтобы были корректные данные json
-    with open(TEMP_FILE_NAME, 'a') as f:
-        f.write(']')    
-
-    # возвращем сохраненную информацию
-    data = {}
-    with open(TEMP_FILE_NAME, 'r') as f:
-        data = json.load(f)
-    
-    return data 
-    
 # ************************* Установка параметров логирования **************************
 
 def _set_log_options():
@@ -212,15 +224,3 @@ def _set_log_options():
 
     # add the handlers to the logger
     logger.addHandler(fh)
-
-
-# ************************* Интерфейсная функция **************************************
-
-def list_handler(URLList, OnePageHandlerClass, with_processes=True, process_limit = 10):
-    ''' Функция  обрабатывает список URL-ов.'''
-
-    _set_log_options()
-    if with_processes:
-        return _with_processes(URLList, OnePageHandlerClass, process_limit)
-    else:
-        return _without_processes(URLList, OnePageHandlerClass)

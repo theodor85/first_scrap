@@ -5,3 +5,4 @@ dist
 .vscode
 firstscrap/data
 __pycache__
+log.log

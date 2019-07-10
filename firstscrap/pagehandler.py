@@ -106,7 +106,7 @@ def pagehandler(use_selenium=False):
                 pass
             else:
                 data_extractor = SoupDataExtractor(func, url, proxy, user_agent)
-            yield data_extractor.extract_data()
+            return data_extractor.extract_data()
 
         return execute
 

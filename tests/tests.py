@@ -35,7 +35,7 @@ def get_data_selenium(url, selenium=None):
 class BSOnePageTest(unittest.TestCase):
     def test_soup (self):
         data = get_data(TEST_URL)
-        self.assertEqual(next(data), CHECK_TEXT)
+        self.assertEqual(data, CHECK_TEXT)
 
 
 # ************* Тестируем извлечение данных из списка url *************************
@@ -62,10 +62,11 @@ def get_date_time_from_olx(url, soup=None):
 class BSListMPTest(unittest.TestCase):
     
     def get_urls(self):
-        self.urls = get_links(TEST_URL_OLX)
+        return get_links(TEST_URL_OLX)
     
     def test_soup(self):
-        lh = ListHandler(self.urls, get_date_time_from_olx, with_treads=True, treads_limit=100)
+        lh = ListHandler(self.get_urls(), get_date_time_from_olx, 
+            with_threads=True, threads_limit=100)
         data = lh.execute()
         for item in data:
             print(item)
