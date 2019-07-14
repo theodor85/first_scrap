@@ -4,7 +4,6 @@ from multiprocessing import Queue
 from time import sleep
 import random
 import logging
-import json
 
 from tqdm import tqdm
 
@@ -12,70 +11,53 @@ from tqdm import tqdm
 LOG_FILE_NAME = 'log.log'
 
 
-# def _without_processes(URLList, OnePageHandlerClass):
-#     ''' Обработка списка URL-ов в простом цикле.  '''
-#     data = []
-#     i = 0
-#     for URL in URLList:
-#         i += 1
-#         handler = OnePageHandlerClass(URL)
-#         print("Обрабатываем страницу № %d, URL: %s"%(i, URL))
-#         data.append(handler.execute())
-#     return data
-
 #************************** Многопоточная обработка *****************************
 
-class ListHandler:
-
-    def __init__(self, urls, func, with_threads=True, threads_limit=100):
-        _set_log_options()
-        self.urls = urls
-        self.func = func
-        self.with_threads = with_threads
-        self.threads_limit = threads_limit
+def listhandler(url_list, func, with_threads=True, threads_limit=5):
+    _set_log_options()
     
-    def execute(self):
-        if self.with_threads:
-            data = self._execute_with_threads()
+    input_data = {
+    'urls_list': url_list,
+    'work_function': func,
+    'threads_limit': threads_limit,
+    }
+    
+    if with_threads:
+        data_gen = _execute_with_threads(input_data)
+    else:
+        data_gen = _execute_without_threads(input_data)
+    return data_gen
+
+
+def _execute_with_threads(input_data):
+    ''' Запускает поток, который запускает рабочие потоки. Затем
+    вынимает из очереди результаты. Возращает объект-генератор.'''
+       
+    input_data['data_queue'] = Queue()
+    input_data['threads_launcher'] = _run_threads_launcher(input_data)
+    return _get_result_generator(input_data)
+
+
+def _run_threads_launcher(input_data):
+    threads_launcher = Thread(target=_launch_threads, args=(), kwargs=input_data)
+    threads_launcher.start()
+    return threads_launcher
+
+
+def _get_result_generator(input_data):
+    # вынимаем в бесконечном цикле результаты из очереди,
+    # условие выхода: поток закончил работу И очередь пуста
+    while True:
+        if input_data['data_queue'].empty():
+            if not input_data['threads_launcher'].is_alive():
+                break
+            sleep(0.1)
         else:
-            data = self._execute_without_threads()
-        return data
-
-    def _execute_with_threads(self):
-        ''' Запускает поток, который запускает рабочие потоки. Затем
-        вынимает из очереди результаты. '''
-        
-        # сюда потоки будут складывать данные, затем отсюда мы их будем 
-        # доставать
-        data_queue = Queue() 
-        
-        input_data = {
-            'data_queue': data_queue,
-            'urls_list': self.urls,
-            'work_function': self.func,
-            'threads_limit': self.threads_limit,
-        }
-
-        thread_launcher = Thread(target=launch_threads, args=(), kwargs=input_data)
-        thread_launcher.start()
-
-        # вынимаем в бесконечном цикле результаты из очереди,
-        # условие выхода: поток закончил работу И очередь пуста
-        while True:
-            if data_queue.empty():
-                if not thread_launcher.is_alive():
-                    break
-                sleep(0.1)
-            else:
-                yield data_queue.get()
-                
-
-    def _execute_without_threads(self):
-        data = []
-        return data
+            yield input_data['data_queue'].get()
 
 
-def launch_threads(**input_data):
+def _launch_threads(**input_data):
+    ''' Многопроходная обработка url-ов '''
     passes_count = 0
     passes_limit = 2
     urls_list = list(input_data['urls_list'])
@@ -85,6 +67,7 @@ def launch_threads(**input_data):
         if not( urls_list and (passes_count<=passes_limit) ):
             break
         else:
+            # получаем необработанные url-ы
             urls_list = _list_handling(urls_list, input_data)
         passes_count += 1
 
@@ -147,41 +130,56 @@ def _get_number_alive(threads_list):
 def _one_page_handling(**input_data):
     ''' Эта функция запускается внутри рабочего потока. '''
 
-    random_timeout()  # чтобы не заддосить сервер
-    logger = logging.getLogger('list_handler')
-    work_function = input_data['work_function']
-    data_queue = input_data['data_queue']
-
-    url = input_data['url']
-    threads_count = input_data['threads_count']
-    urls_for_reprocessing_queue = input_data['urls_for_reprocessing_queue']
+    _random_timeout()  # чтобы не заддосить сервер
     
+    write_log_start_processing(input_data['threads_count'], input_data['url'])
+    try_to_execute_work_function(input_data)
+
+
+def write_log_start_processing(thread_num, url):
+    logger = logging.getLogger('list_handler')
     logger.info(
-        'Процесс {pr}:\n\tНачало обработки URL\n\t{url}'.format(
-            pr=str(threads_count),url=url
+        'Процесс {thr}:\n\tНачало обработки URL\n\t{url}'.format(
+            thr=str(thread_num),url=url
             )
         )
 
+
+def try_to_execute_work_function(input_data):
+    work_function = input_data['work_function']
+    url = input_data['url']
+    thr_count = input_data['threads_count']
     try:
-        one_page_data = work_function(url)  # здесь нужно добавить прокси и юзер-агент
+        one_page_data = work_function(url)  # TODO: здесь нужно добавить прокси и юзер-агент
     except Exception as e:
-        logger.warning('''Процесс {pr}:\n\t Ошибка при обработке URL\n\t{url}.
-            Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
-            '''.format(
-                pr=str(threads_count), url=url, msg=e,
-                )
-            )
-        urls_for_reprocessing_queue.put(url)
+        # ошибка: пишем в лог и отправляем на повторную обработку
+        _write_log_url_processing_error(thr_count, url, e)
+        input_data['urls_for_reprocessing_queue'].put(url)
     else:
-        logger.info(
-            'Процесс {pr}:\n\tУспешно обработан URL\n\t{url}'.format(
-                pr=str(threads_count), url=url
-                )
-            )
-        data_queue.put(one_page_data)
+        # успешно: пишем в лог и помещаем данные в очередь
+        _write_log_url_processing_success(thr_count, url)
+        input_data['data_queue'].put(one_page_data)
 
 
-def random_timeout():
+def _write_log_url_processing_error(thr, url, msg):
+    logger = logging.getLogger('list_handler')
+    logger.warning('''Процесс {thr}:\n\t Ошибка при обработке URL\n\t{url}.
+        Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
+        '''.format(
+            thr=str(thr), url=url, msg=msg,
+        )
+    )
+
+
+def _write_log_url_processing_success(thr, url):
+    logger = logging.getLogger('list_handler')
+    logger.info('''Процесс {thr}:\n\tУспешно обработан URL\n\t{url}'''.format(
+        thr=str(thr), url=url
+        ) 
+    )
+
+
+def _random_timeout():
     ''' Случайный тайм-аут от 0 до 5 секунд. '''
     sleep(random.randint(0, 5))
 
@@ -208,6 +206,12 @@ def _extract_urls_for_reprocess(urls_for_reprocess_queue):
         urls_for_reprocess_list.append(urls_for_reprocess_queue.get())
     return urls_for_reprocess_list
 
+
+# ************************* Обработка без потоков **************************
+
+def _execute_without_threads(input_data):
+    data = []
+    return data
 
 # ************************* Установка параметров логирования **************************
 

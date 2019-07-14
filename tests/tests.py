@@ -1,6 +1,6 @@
 import unittest
 
-from firstscrap.listhandler import ListHandler
+from firstscrap.listhandler import listhandler
 
 from firstscrap.pagehandler import pagehandler
 # план тестирования
@@ -11,7 +11,7 @@ from firstscrap.pagehandler import pagehandler
 #-----------------------------------------------------------------------
 # BS - список стр. - без процессов  | BSListWithoutMPTest       | -
 # Sel - список стр. - без процессов | SeleniumListWithoutMPTest | -
-# BS - список стр. - c процессами   | BSListMPTest              | *
+# BS - список стр. - c процессами   | BSListMPTest              | OK
 # Sel - список стр. - c процессами  | SeleniumListMPTest        | -          
 
 TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
@@ -65,9 +65,8 @@ class BSListMPTest(unittest.TestCase):
         return get_links(TEST_URL_OLX)
     
     def test_soup(self):
-        lh = ListHandler(self.get_urls(), get_date_time_from_olx, 
+        data = listhandler(self.get_urls(), get_date_time_from_olx, 
             with_threads=True, threads_limit=100)
-        data = lh.execute()
         for item in data:
             print(item)
             self.assertRegex(item, r'([0-1]\d|2[0-3])(:[0-5]\d)')  # время HH:MM
