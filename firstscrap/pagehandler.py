@@ -1,13 +1,117 @@
 #-*-coding: utf-8 -*-
+import functools, os
+from random import choice
+from abc import ABC, abstractmethod
 
 import requests
-import os
-
 from bs4 import BeautifulSoup
-from random import choice
 from selenium import webdriver
 
-from abc import ABC, abstractmethod
+PROXY_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list.txt'
+USER_AGENTS_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/useragents.txt'
+
+
+class SoupDataExtractor:
+
+    def __init__(self, func, url, proxy, user_agent):
+        ''' Прокси и юзер-агента можно передать в объект извне, 
+        в противном случае, они будут подгружены из файлов.
+         '''
+        if not proxy:
+            self._set_proxy()
+        else:
+            self.proxy = {'http': proxy}
+
+        if not user_agent:
+            self._set_user_agent()
+        else:
+            self.headers = {'user-agent': user_agent}
+        
+        self.func = func
+        self.url = url
+
+    def _set_proxy(self):
+        self.proxy = {
+            'http': choice( self._get_proxies_list(PROXY_LIST_FILENAME) ),
+        }
+    
+    def _get_proxies_list(self, filename):
+        ''' загружает список прокси-серверов '''
+        return self._read_file(filename)
+
+    def _read_file(self, filename):
+        with open(filename, 'r') as f:
+            data = f.read().strip().split('\n')
+        return data
+
+    def _set_user_agent(self):
+        self.headers = {
+            'user-agent': choice( self._get_user_agents_list(USER_AGENTS_LIST_FILENAME) ), 
+        }
+
+    def _get_user_agents_list(self, filename):
+        ''' Загружает список User-Agent '''
+        return self._read_file(filename)
+    
+    def extract_data(self):
+        html = self._do_request()
+        data = self._extract_data_with_soup(html)
+        return data
+
+    def _do_request(self):
+        
+        error_message = """*** Ошибка при выполнении http-запроса!
+                URL:{URL}
+                Прокси: {PROXY}
+                User-Agent: {UA}
+                Тип ошибки: {err_type}
+                Текст ошибки: {msg}"""
+        
+        try:
+            response = requests.get(self.url, proxies=self.proxy, headers=self.headers)
+        except requests.exceptions.ConnectionError as e:
+            raise UrlOpenWithSoupException( 
+                error_message.format(
+                    URL=self.url,
+                    PROXY=self.proxy['http'],
+                    UA=self.headers['user-agent'],
+                    err_type = type(e),
+                    msg=str(e),
+                )
+            )
+
+        return response.text
+
+    def _extract_data_with_soup(self, html):
+        try:
+            data = self.func( self.url, soup=BeautifulSoup(html, features="html.parser") )
+        except Exception as e:
+            raise ExtractDataWithSoupException("""*** Ошибка при извлечении данных из веб-страницы!
+                URL:{URL}
+                Текст ошибки: {msg}""".format(
+                    URL=self.url,
+                    msg=str(e),
+                )
+            )
+        return data 
+
+
+def pagehandler(use_selenium=False):
+    def decorator(func):
+            
+        @functools.wraps(func)
+        def execute(url, proxy=None, user_agent=None):
+            
+            if use_selenium:
+                pass
+            else:
+                data_extractor = SoupDataExtractor(func, url, proxy, user_agent)
+            return data_extractor.extract_data()
+
+        return execute
+
+    return decorator
+
 
 
 PROXY_LIST_FILE_NAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list.txt'
@@ -208,21 +312,8 @@ class ExtractDataWithSelenimException(SeleniumException):
 
 #********************* Исключения для BeautifulSoup ****************************
 
-class SoupException(PageHandlerException):
-    """Базовый класс для исключений, возникающих при работе с BeautifulSoup."""
-    def __init__(self, arg):
-        super(SoupException, self).__init__()
-        self.arg = arg
-
-
 class ExtractDataWithSoupException(Exception):
-    """docstring for ExtractDataWithSoupException."""
-    def __init__(self, arg):
-        super(ExtractDataWithSoupException, self).__init__()
-        self.arg = arg
+    pass
 
 class UrlOpenWithSoupException(Exception):
-    """docstring for UrlOpenWithSoupException."""
-    def __init__(self, arg):
-        super(UrlOpenWithSoupException, self).__init__()
-        self.arg = arg
+    pass
