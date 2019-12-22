@@ -1,7 +1,8 @@
 #-*-coding: utf-8 -*-
 import functools, os
-from random import choice
+from random import choice, randint
 from abc import ABC, abstractmethod
+from time import sleep
 
 import requests
 from bs4 import BeautifulSoup
@@ -54,6 +55,7 @@ class SoupDataExtractor:
         return self._read_file(filename)
     
     def extract_data(self):
+        sleep(randint(0, 5))
         html = self._do_request()
         data = self._extract_data_with_soup(html)
         return data

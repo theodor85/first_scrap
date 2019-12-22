@@ -4,6 +4,7 @@ from multiprocessing import Queue
 from time import sleep
 import random
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from tqdm import tqdm
 
@@ -76,6 +77,27 @@ def _list_handling(urls_list, input_data):
     извлекает и возвращает список завершившихся с ошибкой url-ов 
     на повторную обработку. '''
     
+    work_function = input_data['work_function']
+    threads_limit = input_data['threads_limit']
+    urls_for_reprocessing = []
+    with ThreadPoolExecutor(max_workers=threads_limit) as executor:
+        future_to_url = {
+            executor.submit(work_function, url):
+                url for url in urls_list
+        }
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                data = future.result()
+            except Exception as e:
+                _write_log_url_processing_error(url, e)
+                urls_for_reprocessing.append(url)
+            else:
+                _write_log_url_processing_success(url)
+
+    return urls_for_reprocessing
+
+
     threads_list, urls_for_reprocess_queue = _url_list_loop(urls_list, input_data)
     _waiting_for_threads_completion(threads_list)
     urls_for_reprocess = _extract_urls_for_reprocess(urls_for_reprocess_queue)
@@ -126,16 +148,16 @@ def _get_number_alive(threads_list):
     return number_alive
 
 
-def _one_page_handling(**input_data):
+def _one_page_handling(url, **input_data):
     ''' Эта функция запускается внутри рабочего потока. '''
 
     _random_timeout()  # чтобы не заддосить сервер
     
-    write_log_start_processing(input_data['threads_count'], input_data['url'])
-    try_to_execute_work_function(input_data)
+    write_log_start_processing(url, input_data['threads_count'])
+    try_to_execute_work_function(url, input_data)
 
 
-def write_log_start_processing(thread_num, url):
+def write_log_start_processing(url, thread_num):
     logger = logging.getLogger('list_handler')
     logger.info(
         'Процесс {thr}:\n\tНачало обработки URL\n\t{url}'.format(
@@ -144,9 +166,8 @@ def write_log_start_processing(thread_num, url):
         )
 
 
-def try_to_execute_work_function(input_data):
+def try_to_execute_work_function(url, input_data):
     work_function = input_data['work_function']
-    url = input_data['url']
     thr_count = input_data['threads_count']
     try:
         one_page_data = work_function(url)  # TODO: здесь нужно добавить прокси и юзер-агент
@@ -160,22 +181,17 @@ def try_to_execute_work_function(input_data):
         input_data['data_queue'].put(one_page_data)
 
 
-def _write_log_url_processing_error(thr, url, msg):
+def _write_log_url_processing_error(url, msg):
     logger = logging.getLogger('list_handler')
-    logger.warning('''Процесс {thr}:\n\t Ошибка при обработке URL\n\t{url}.
+    logger.warning('''Ошибка при обработке URL\n\t{url}.
         Текст ошибки: {msg}.\n\tURL отправлен на повторную обработку.
-        '''.format(
-            thr=str(thr), url=url, msg=msg,
-        )
+        '''.format(url=url, msg=msg)
     )
 
 
-def _write_log_url_processing_success(thr, url):
+def _write_log_url_processing_success(url):
     logger = logging.getLogger('list_handler')
-    logger.info('''Процесс {thr}:\n\tУспешно обработан URL\n\t{url}'''.format(
-        thr=str(thr), url=url
-        ) 
-    )
+    logger.info( '''Успешно обработан URL\n\t{url}'''.format(url=url) )
 
 
 def _random_timeout():
