@@ -16,24 +16,50 @@ def pagehandler(use_selenium=False):
             
         @functools.wraps(func)
         def execute(url, proxy=None, user_agent=None):
-            
-            if use_selenium:
-                pass
-            else:
-                data_extractor = SoupDataExtractor(func, url, proxy, user_agent)
-            return data_extractor.extract_data()
+            return DataExtractor(
+                func,
+                use_selenium,
+                url,
+                proxy,
+                user_agent
+            ).get_data()
 
         return execute
 
     return decorator
 
 
-class SoupDataExtractor:
+class DataExtractor:
+    ''' Facade design pattern '''
 
-    def __init__(self, func, url, proxy, user_agent):
+    def __init__(self, func, use_selenium, url, proxy, user_agent):
         ''' Прокси и юзер-агента можно передать в объект извне, 
         в противном случае, они будут подгружены из файлов.
-         '''
+        '''
+        self.func = func
+        self.use_selenium = use_selenium
+        self.url = url
+        self.proxy = proxy
+        self.user_agent = user_agent
+
+    def get_data(self):
+
+        # получить параметры запроса (proxy, headers)
+        request_params = RequestParametersSetter(self.proxy, self.user_agent)
+        request_params.url = self.url
+
+        # сделать запрос
+        response = Request(request_params).do_request()
+
+        # разобрать ответ и вернуть объект данных
+        data = Parser(response, self.func, self.url).extract_data()
+        return data
+
+
+class RequestParametersSetter:
+
+    def __init__(self, proxy, user_agent):
+        
         if not proxy:
             self._set_proxy()
         else:
@@ -43,9 +69,6 @@ class SoupDataExtractor:
             self._set_user_agent()
         else:
             self.headers = {'user-agent': user_agent}
-        
-        self.func = func
-        self.url = url
 
     def _set_proxy(self):
         self.proxy = {
@@ -69,13 +92,16 @@ class SoupDataExtractor:
     def _get_user_agents_list(self, filename):
         ''' Загружает список User-Agent '''
         return self._read_file(filename)
-    
-    def extract_data(self):
-        html = self._do_request()
-        data = self._extract_data_with_soup(html)
-        return data
 
-    def _do_request(self):
+
+class Request:
+    
+    def __init__(self, request_params):
+        self.url = request_params.url
+        self.proxy = request_params.proxy
+        self.headers = request_params.headers
+
+    def do_request(self):
         
         error_message = """*** Ошибка при выполнении http-запроса!
                 URL:{URL}
@@ -99,9 +125,17 @@ class SoupDataExtractor:
 
         return response.text
 
-    def _extract_data_with_soup(self, html):
+
+class Parser:
+
+    def __init__(self, html, func, url):
+        self.html = html
+        self.func = func
+        self.url = url
+    
+    def extract_data(self):
         try:
-            data = self.func( self.url, soup=BeautifulSoup(html, features="html.parser") )
+            data = self.func(self.url, soup=BeautifulSoup(self.html, features="html.parser") )
         except Exception as e:
             raise ExtractDataWithSoupException("""*** Ошибка при извлечении данных из веб-страницы!
                 URL:{URL}
@@ -111,6 +145,8 @@ class SoupDataExtractor:
                 )
             )
         return data
+
+
 
 
 # паттерн Стратегия для выбора бэкенда селениума
@@ -157,7 +193,7 @@ class ChromeBackendGetter(SeleniumBackendGetter):
 class PageHandler(ABC):
     """Абстракнтый класс для обработки одного URL.
     В дочернем классе необходимо реализовать:
-        метод extract_data_from_html(self, soup=None, selenium_driver=None), в которой нужно прописать выборку
+        метод get_data_from_html(self, soup=None, selenium_driver=None), в которой нужно прописать выборку
             данных из html-страницы
             soup - это объект BeautifulSoup
             selenium_driver - это объект selenium
@@ -174,7 +210,7 @@ class PageHandler(ABC):
         self.UserAgentsList = self._get_user_agents_list(USER_AGENTS_FILE_NAME)
 
     @abstractmethod
-    def extract_data_from_html(self, soup=None, selenium_driver=None):
+    def get_data_from_html(self, soup=None, selenium_driver=None):
         pass
 
     #загружает список User-Agent
@@ -224,7 +260,7 @@ class PageHandler(ABC):
 
     def _get_data_from_page_with_selenium(self, driver):
         try:
-            data = self.extract_data_from_html(selenium_driver=driver)
+            data = self.get_data_from_html(selenium_driver=driver)
         except Exception as err:
             raise ExtractDataWithSelenimException("Ошибка при извлечении данных со страницы с помощью selenium!", self.URL, err)
         return data
@@ -238,7 +274,7 @@ class PageHandler(ABC):
         # выбираем необходимые данные
         html = self._receive_html_from_URL()
         try:
-            data = self.extract_data_from_html( soup=BeautifulSoup(html, features="html.parser") )
+            data = self.get_data_from_html( soup=BeautifulSoup(html, features="html.parser") )
         except Exception as e:
             raise Exception("Не удалось извлечь данные со страницы! \n\tURL: {URL} \n\tТекст ошибки: ".format(URL=self.URL) + str(e))
 
