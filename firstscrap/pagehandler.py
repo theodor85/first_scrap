@@ -11,6 +11,23 @@ PROXY_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list
 USER_AGENTS_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/useragents.txt'
 
 
+def pagehandler(use_selenium=False):
+    def decorator(func):
+            
+        @functools.wraps(func)
+        def execute(url, proxy=None, user_agent=None):
+            
+            if use_selenium:
+                pass
+            else:
+                data_extractor = SoupDataExtractor(func, url, proxy, user_agent)
+            return data_extractor.extract_data()
+
+        return execute
+
+    return decorator
+
+
 class SoupDataExtractor:
 
     def __init__(self, func, url, proxy, user_agent):
@@ -93,29 +110,8 @@ class SoupDataExtractor:
                     msg=str(e),
                 )
             )
-        return data 
+        return data
 
-
-def pagehandler(use_selenium=False):
-    def decorator(func):
-            
-        @functools.wraps(func)
-        def execute(url, proxy=None, user_agent=None):
-            
-            if use_selenium:
-                pass
-            else:
-                data_extractor = SoupDataExtractor(func, url, proxy, user_agent)
-            return data_extractor.extract_data()
-
-        return execute
-
-    return decorator
-
-
-
-PROXY_LIST_FILE_NAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list.txt'
-USER_AGENTS_FILE_NAME = os.path.dirname(os.path.realpath(__file__)) + '/useragents.txt'
 
 # паттерн Стратегия для выбора бэкенда селениума
 # базовый класс для паттерна Стратегия
