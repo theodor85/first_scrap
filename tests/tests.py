@@ -2,7 +2,8 @@ import unittest
 
 from firstscrap.listhandler import listhandler
 
-from firstscrap.pagehandler import pagehandler
+from firstscrap.pagehandler import pagehandler_bs
+from firstscrap.pagehandler import pagehandler_selenium
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
@@ -17,24 +18,29 @@ from firstscrap.pagehandler import pagehandler
 TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
 CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
 
-@pagehandler(use_selenium=False)
+@pagehandler_bs
 def get_data(url, soup=None):
     h2 = soup.find( "h2" )
     header = h2.get_text().strip()
     return header
 
-@pagehandler(use_selenium=True)
+@pagehandler_selenium
 def get_data_selenium(url, selenium=None):
     data = []
     h2 = selenium.find_element_by_tag_name( "h2" )
     header = h2.text.strip()
-    data.append(header)
-    return data    
+    return header    
 
    
 class BSOnePageTest(unittest.TestCase):
-    def test_soup (self):
+    def test_soup(self):
         data = get_data(TEST_URL)
+        self.assertEqual(data, CHECK_TEXT)
+
+
+class SeleniumOnePageTest(unittest.TestCase):
+    def test_selenium(self):
+        data = get_data_selenium(TEST_URL)
         self.assertEqual(data, CHECK_TEXT)
 
 
@@ -43,7 +49,7 @@ class BSOnePageTest(unittest.TestCase):
 
 TEST_URL_OLX = 'https://www.olx.ua/rabota/telekommunikatsii-svyaz/'
 
-@pagehandler(use_selenium=False)
+@pagehandler_selenium
 def get_links(url, soup=None):
     ''' Извлекает ссылки на объявления '''
     links = []
@@ -52,7 +58,7 @@ def get_links(url, soup=None):
         links.append(a['href']) 
     return links
 
-@pagehandler(use_selenium=False)
+@pagehandler_bs
 def get_date_time_from_olx(url, soup=None):
     ''' Получает строку, содержащую дату и время публикации объявления '''
     em = soup.find('em')

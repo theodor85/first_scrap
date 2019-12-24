@@ -11,48 +11,74 @@ PROXY_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/proxy_list
 USER_AGENTS_LIST_FILENAME = os.path.dirname(os.path.realpath(__file__)) + '/useragents.txt'
 
 
-def pagehandler(use_selenium=False):
-    def decorator(func):
-            
-        @functools.wraps(func)
-        def execute(url, proxy=None, user_agent=None):
-            return DataExtractor(
-                func,
-                use_selenium,
-                url,
-                proxy,
-                user_agent
-            ).get_data()
 
-        return execute
+def pagehandler_bs(func):
+        
+    @functools.wraps(func)
+    def execute(url, proxy=None, user_agent=None):
+        return DataExtractor(
+            func,
+            url,
+            proxy,
+            user_agent,
+            backend=BSDriver(),
+        ).get_data()
 
-    return decorator
+    return execute
+
+
+def pagehandler_selenium(func):
+        
+    @functools.wraps(func)
+    def execute(url, proxy=None, user_agent=None):
+        return DataExtractor(
+            func,
+            url,
+            proxy,
+            user_agent,
+            backend=SeleniumDriver(),
+        ).get_data()
+
+    return execute
 
 
 class DataExtractor:
-    ''' Facade design pattern '''
+    '''  '''
 
-    def __init__(self, func, use_selenium, url, proxy, user_agent):
+    def __init__(self, func, url, proxy, user_agent, backend):
         ''' Прокси и юзер-агента можно передать в объект извне, 
         в противном случае, они будут подгружены из файлов.
         '''
         self.func = func
-        self.use_selenium = use_selenium
         self.url = url
         self.proxy = proxy
         self.user_agent = user_agent
+        self.backend_object = backend
 
     def get_data(self):
+        return self.backend_object.get_data(
+            self.func,
+            self.url,
+            self.proxy,
+            self.user_agent,
+        )
 
+
+class BSDriver:
+
+    def __init__(self):
+        pass
+
+    def get_data(self, func, url, proxy, user_agent):
         # получить параметры запроса (proxy, headers)
-        request_params = RequestParametersSetter(self.proxy, self.user_agent)
-        request_params.url = self.url
+        request_params = RequestParametersSetter(proxy, user_agent)
+        request_params.url = url
 
         # сделать запрос
         response = Request(request_params).do_request()
 
         # разобрать ответ и вернуть объект данных
-        data = Parser(response, self.func, self.url).extract_data()
+        data = Parser(response, func, url).extract_data()
         return data
 
 
@@ -147,6 +173,55 @@ class Parser:
         return data
 
 
+class SeleniumDriver:
+
+    def __init__(self):
+        pass
+
+    def get_data(self, func, url, proxy, user_agent):
+        
+        self.url = url
+        self.func = func
+        
+        # контекст паттерна Стратегия
+        # в этом месте должен быть выбор класса, в зависимости от настроек
+        driver_getter = ChromeBackendGetter(proxy)
+
+        self.driver = self._get_selenium_driver(driver_getter)
+        self._open_url_with_selenium()
+        data = self._get_data_from_page_with_selenium()
+        self.driver.close()
+        return data
+
+    def _get_selenium_driver(self, driver_getter):
+        
+        try:
+            driver = driver_getter.get_selenium_driver()
+        except Exception as err:
+            raise SelenimDriverException(
+                "Ошибка при открытии драйвера selenium!", self.url, err)
+        return driver
+
+    def _open_url_with_selenium(self):
+        try:
+            self.driver.get(self.url)
+        except Exception as err:
+            raise UrlOpenWithSeleniumException(
+                "Не удалось отрыть URL драйвером Selenium!", self.url, err)
+
+    def _get_data_from_page_with_selenium(self):
+        try:
+            data = self.func(self.url, selenium=self.driver)
+        except Exception as err:
+            raise ExtractDataWithSelenimException(
+                "Ошибка при извлечении данных со страницы с помощью selenium!",
+                self.url,
+                err,
+            )
+        return data
+
+
+
 
 
 # паттерн Стратегия для выбора бэкенда селениума
@@ -160,8 +235,8 @@ class SeleniumBackendGetter(ABC):
 # конкретная стратегия: используем Chrome и chromedriver
 class ChromeBackendGetter(SeleniumBackendGetter):
     
-    def __init__(self, proxy_list):
-        self.proxy_list = proxy_list
+    def __init__(self, proxy):
+        self.proxy_list = [proxy, ]
 
     def get_selenium_driver(self):
         options = self._set_chrome_options()
@@ -187,131 +262,6 @@ class ChromeBackendGetter(SeleniumBackendGetter):
         options.add_argument('--headless') # режим без графического интерфейса
         return options
 
-  
-
-
-class PageHandler(ABC):
-    """Абстракнтый класс для обработки одного URL.
-    В дочернем классе необходимо реализовать:
-        метод get_data_from_html(self, soup=None, selenium_driver=None), в которой нужно прописать выборку
-            данных из html-страницы
-            soup - это объект BeautifulSoup
-            selenium_driver - это объект selenium
-        в конструкторе прописать вызов базового конструктора:
-            super().__init__()
-        в конструкторе определить поля:
-            поле URL - url-адрес страницы для обработки
-            поле use_selenium - используется ли selenium (True) или BeautifulSoup (False)
-    """
-    def __init__(self):
-        self.use_selenium = False
-        self.URL = ''
-        self.ProxiesList = self._get_proxies_list(PROXY_LIST_FILE_NAME)
-        self.UserAgentsList = self._get_user_agents_list(USER_AGENTS_FILE_NAME)
-
-    @abstractmethod
-    def get_data_from_html(self, soup=None, selenium_driver=None):
-        pass
-
-    #загружает список User-Agent
-    def _get_user_agents_list(self, filename):
-        return self._read_file(filename)
-
-    #загружает список прокси-серверов
-    def _get_proxies_list(self, filename):
-        return self._read_file(filename)
-
-    def _read_file(self, filename):
-        with open(filename, 'r') as f:
-            data = f.read().strip().split('\n')
-        return data
-
-    def execute(self):
-
-        if self.use_selenium:
-
-            # контекст паттерна Стратегия
-            # в этом месте должен быть выбор класса, в зависимости от настроек
-            driver_getter = ChromeBackendGetter(self.ProxiesList)
-
-            driver = self._get_selenium_driver(driver_getter)
-            self._open_url_with_selenium(driver)
-            data = self._get_data_from_page_with_selenium(driver)
-            driver.close()
-            return data
-        else:
-            return self._get_data_from_page_with_soup()
-
-#****************** Методы для работы с Selenium *******************************
-
-    def _get_selenium_driver(self, driver_getter):
-        
-        try:
-            driver = driver_getter.get_selenium_driver()
-        except Exception as err:
-            raise SelenimDriverException("Ошибка при открытии драйвера selenium!", self.URL, err)
-        return driver
-
-    def _open_url_with_selenium(self, driver):
-        try:
-            driver.get(self.URL)
-        except Exception as err:
-            raise UrlOpenWithSeleniumException("Не удалось отрыть URL драйвером Selenium!", self.URL, err)
-
-    def _get_data_from_page_with_selenium(self, driver):
-        try:
-            data = self.get_data_from_html(selenium_driver=driver)
-        except Exception as err:
-            raise ExtractDataWithSelenimException("Ошибка при извлечении данных со страницы с помощью selenium!", self.URL, err)
-        return data
-
-
-#****************** Методы для работы с BeautifulSoup **************************
-
-    def _get_data_from_page_with_soup(self):
-
-        # открываем URL, получаем объект страницы и передаём его в BeautifulSoup
-        # выбираем необходимые данные
-        html = self._receive_html_from_URL()
-        try:
-            data = self.get_data_from_html( soup=BeautifulSoup(html, features="html.parser") )
-        except Exception as e:
-            raise Exception("Не удалось извлечь данные со страницы! \n\tURL: {URL} \n\tТекст ошибки: ".format(URL=self.URL) + str(e))
-
-        return data
-
-    def _receive_html_from_URL(self):
-        headers = self._get_headers()
-        proxy = self._get_proxy()
-        html = self._try_to_request(headers, proxy)
-        return html
-
-    def _get_headers(self):
-        headers = {
-            'user-agent': choice(self.UserAgentsList), 
-        }
-        return headers
-
-    def _get_proxy(self):
-        proxy = {
-            'http': choice(self.ProxiesList),
-        }
-        return proxy
-
-    def _try_to_request(self, headers, proxy):
-        try:
-            response = requests.get(self.URL, proxies=proxy, headers=headers)
-        except Exception as e:
-            raise Exception("""*** Ошибка при открытии при выполнении http-запроса!
-                URL:{URL}
-                Прокси: {PROXY}
-                User-Agent: {UA}
-                Текст ошибки: """.format(
-                    URL=self.URL,
-                    PROXY=proxy['http'],
-                    UA=headers['user-agent'])
-                        + str(e))
-        return response.text
 
 
 #****************************** Исключения *************************************
