@@ -57,21 +57,22 @@ def get_links(url, soup=None):
         links.append(a['href']) 
     return links
 
-@pagehandler_bs
-def get_date_time_from_olx(url, soup=None):
+TEST_URLLIST_OLX = [
+    'https://www.olx.ua/obyavlenie/spetsialist-po-podklyucheniyu-interneta-IDGnCkB.html',
+    'https://www.olx.ua/obyavlenie/menedzher-po-robot-s-klentami-IDGkGK6.html',
+]
+
+@listhandler_bs(threads_limit=5)
+def get_date_time_from_olx(urllist, soup=None):
     ''' Получает строку, содержащую дату и время публикации объявления '''
     em = soup.find('em')
     row_text = em.get_text().strip()
     return row_text
 
 class BSListMPTest(unittest.TestCase):
-    
-    def get_urls(self):
-        return get_links(TEST_URL_OLX)
-    
-    def test_soup(self):
-        data = listhandler(self.get_urls(), get_date_time_from_olx, 
-            with_threads=True, threads_limit=100)
+     
+    def test_soup_list(self):
+        data = get_date_time_from_olx(TEST_URLLIST_OLX)
         for item in data:
             print(item)
             self.assertRegex(item, r'([0-1]\d|2[0-3])(:[0-5]\d)')  # время HH:MM
