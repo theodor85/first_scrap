@@ -8,12 +8,12 @@ from firstscrap.pagehandler import pagehandler_selenium
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
 # BS - одиночная страница           | BSOnePageTest             | OK
-# Selenium - одиночая стр.          | SeleniumOnePageTest       | -
+# Selenium - одиночая стр.          | SeleniumOnePageTest       | OK
 #-----------------------------------------------------------------------
-# BS - список стр. - без процессов  | BSListWithoutMPTest       | -
-# Sel - список стр. - без процессов | SeleniumListWithoutMPTest | -
-# BS - список стр. - c процессами   | BSListMPTest              | OK
-# Sel - список стр. - c процессами  | SeleniumListMPTest        | -          
+# BS - список стр. - без потоков  | BSListWithoutMPTest       | X
+# Sel - список стр. - без потоков | SeleniumListWithoutMPTest | -
+# BS - список стр. - c потоками   | BSListMPTest              | OK
+# Sel - список стр. - c потоками  | SeleniumListMPTest        | X          
 
 TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
 CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
@@ -26,7 +26,6 @@ def get_data(url, soup=None):
 
 @pagehandler_selenium
 def get_data_selenium(url, selenium=None):
-    data = []
     h2 = selenium.find_element_by_tag_name( "h2" )
     header = h2.text.strip()
     return header    
@@ -80,12 +79,6 @@ class BSListMPTest(unittest.TestCase):
         
 #**************************************************************************************************
 
-
-
-class SeleniumOnePageTest_decors(unittest.TestCase):
-    def test_selenium(self):
-        data = get_data_selenium(TEST_URL)
-        self.assertEqual(data[0], CHECK_TEXT)
 
 
 if __name__ == '__main__' :
