@@ -4,10 +4,46 @@ from multiprocessing import Queue
 from time import sleep
 import random
 import logging
+import functools
 
 from tqdm import tqdm
 
+from firstscrap.pagehandler import pagehandler_bs
+
 LOG_FILE_NAME = 'log.log'
+
+
+def listhandler_bs(threads_limit=10):
+    def decorator(func):
+            
+        @functools.wraps(func)
+        def execute(url_list):
+            
+            @pagehandler_bs
+            def work_function(url, soup=None):
+                return func(url, soup)
+
+            return BSListDataExtractor(
+                url_list,
+                work_function,
+                ).get_data()
+
+        return execute
+
+    return decorator
+
+
+class BSListDataExtractor:
+    def __init__(self, url_list, work_function):
+        pass
+
+    def get_data(self):
+        data = []
+        return data
+
+
+
+
 
 
 #************************** Многопоточная обработка *****************************

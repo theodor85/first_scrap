@@ -1,6 +1,6 @@
 import unittest
 
-from firstscrap.listhandler import listhandler
+from firstscrap.listhandler import listhandler_bs
 
 from firstscrap.pagehandler import pagehandler_bs
 from firstscrap.pagehandler import pagehandler_selenium
@@ -73,6 +73,7 @@ class BSListMPTest(unittest.TestCase):
      
     def test_soup_list(self):
         data = get_date_time_from_olx(TEST_URLLIST_OLX)
+        self.assertGreater(len(data), 0)
         for item in data:
             print(item)
             self.assertRegex(item, r'([0-1]\d|2[0-3])(:[0-5]\d)')  # время HH:MM
