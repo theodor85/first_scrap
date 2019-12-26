@@ -1,6 +1,4 @@
-#-*-coding: utf-8 -*-
-from threading import Thread
-from multiprocessing import Queue
+from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 import random
 import logging
@@ -26,6 +24,7 @@ def listhandler_bs(threads_limit=10):
             return BSListDataExtractor(
                 url_list,
                 work_function,
+                threads_limit,
                 ).get_data()
 
         return execute
@@ -34,11 +33,15 @@ def listhandler_bs(threads_limit=10):
 
 
 class BSListDataExtractor:
-    def __init__(self, url_list, work_function):
-        pass
+    def __init__(self, url_list, work_function, threads_limit):
+        self.url_list = url_list
+        self.work_function = work_function
+        self.threads_limit = threads_limit
 
     def get_data(self):
-        data = []
+        workers_count = min(self.threads_limit, len(self.url_list))
+        with ThreadPoolExecutor(workers_count) as executor:
+            data = executor.map(self.work_function, self.url_list)
         return data
 
 
