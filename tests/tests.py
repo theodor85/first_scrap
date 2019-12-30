@@ -73,11 +73,14 @@ class BSListMPTest(unittest.TestCase):
      
     def test_soup_list(self):
         data = get_date_time_from_olx(TEST_URLLIST_OLX)
-        self.assertGreater(len(data), 0)
+        
+        counter = 0  # чтобы проверить, что собрано элементов данных больше нуля
         for item in data:
+            counter =+ 1
             print(item)
             self.assertRegex(item, r'([0-1]\d|2[0-3])(:[0-5]\d)')  # время HH:MM
             self.assertRegex(item, r'\d{1,}\s([а-яА-ЯёЁ]){1,}\s\d\d\d\d')  # дата 29 июня 2019  2 июля 2019
+        self.assertGreater(counter, 0)
         
 #**************************************************************************************************
 
