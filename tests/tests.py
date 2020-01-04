@@ -2,8 +2,8 @@ import unittest
 
 from firstscrap.listhandler import listhandler_bs
 
-from firstscrap.pagehandler import pagehandler
-from firstscrap.pagehandler import pagehandler_selenium
+from firstscrap.pagehandler.static_parser import pagehandler
+from firstscrap.pagehandler.selenium import pagehandler_selenium
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------

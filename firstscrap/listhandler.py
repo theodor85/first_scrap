@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import functools
 
-from firstscrap.pagehandler import pagehandler
+from firstscrap.pagehandler.static_parser import pagehandler
 
 
 def listhandler_bs(threads_limit=10):
