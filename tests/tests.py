@@ -2,7 +2,7 @@ import unittest
 
 from firstscrap.listhandler import listhandler_bs
 
-from firstscrap.pagehandler import pagehandler_bs
+from firstscrap.pagehandler import pagehandler
 from firstscrap.pagehandler import pagehandler_selenium
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
@@ -18,7 +18,7 @@ from firstscrap.pagehandler import pagehandler_selenium
 TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
 CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
 
-@pagehandler_bs
+@pagehandler(parser="BeautifulSoup")
 def get_data(url, soup=None):
     h2 = soup.find( "h2" )
     header = h2.get_text().strip()
