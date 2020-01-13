@@ -1,6 +1,6 @@
 import unittest
 
-from firstscrap.listhandler import listhandler_bs
+from firstscrap.listhandler import listhandler
 
 from firstscrap.pagehandler.static_parser import pagehandler
 from firstscrap.pagehandler.selenium import pagehandler_selenium
@@ -8,7 +8,7 @@ from firstscrap.pagehandler.selenium import pagehandler_selenium
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
 # BS - одиночная страница           | BSOnePageTest             | OK
-# Selenium - одиночая стр.          | SeleniumOnePageTest       | OK
+# Selenium - одиночая стр.          | SeleniumOnePageTest       | -
 #-----------------------------------------------------------------------
 # BS - список стр. - без потоков  | BSListWithoutMPTest       | X
 # Sel - список стр. - без потоков | SeleniumListWithoutMPTest | -
@@ -62,7 +62,7 @@ TEST_URLLIST_OLX = [
     'https://www.olx.ua/obyavlenie/menedzher-po-robot-s-klentami-IDGkGK6.html',
 ]
 
-@listhandler_bs(threads_limit=5)
+@listhandler(threads_limit=5, parser='BeautifulSoup')
 def get_date_time_from_olx(urllist, soup=None):
     ''' Получает строку, содержащую дату и время публикации объявления '''
     em = soup.find('em')
