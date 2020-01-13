@@ -2,7 +2,6 @@ import functools, os
 from random import choice
 
 import requests
-from bs4 import BeautifulSoup
 
 from .parsers import get_parser
 
@@ -29,6 +28,7 @@ class DataExtractor:
         self.func = func
 
     def get_data(self, request, parser):
+        self.url = request.url   # self.url нужен для вставки в сообщение об ошибке
         html = request.do_request()
         parsed_html_obj = parser.parse(html)
         return self._try_extract_data(parsed_html_obj)
@@ -72,7 +72,7 @@ class Request:
                 self.url, proxies=params['proxies'], headers=params['headers']
             )
         except requests.exceptions.ConnectionError as e:
-            raise UrlOpenWithSoupException( 
+            raise UrlOpenException( 
                 error_message.format(
                     URL=url,
                     PROXY=proxy['http'],
@@ -139,10 +139,10 @@ class Parser:
         return parser(row_html)
 
 
-#********************* Исключения для BeautifulSoup ****************************
+#********************* Исключения ****************************
 
 class ExtractDataException(Exception):
     pass
 
-class UrlOpenWithSoupException(Exception):
+class UrlOpenException(Exception):
     pass
