@@ -1,9 +1,9 @@
 import unittest
 
-from firstscrap.listhandler import listhandler
+from firstscrap import listhandler
 
-from firstscrap.pagehandler.static_parser import pagehandler
-from firstscrap.pagehandler.selenium import pagehandler_selenium
+from firstscrap import pagehandler
+from firstscrap import pagehandler_selenium
 # план тестирования
 # Что тестируем                     | Имя тестового класса      | Готовность
 #-----------------------------------------------------------------------
@@ -15,14 +15,17 @@ from firstscrap.pagehandler.selenium import pagehandler_selenium
 # BS - список стр. - c потоками   | BSListMPTest              | OK
 # Sel - список стр. - c потоками  | SeleniumListMPTest        | X          
 
-TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
-CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
+# TEST_URL = 'https://classinform.ru/okpo/01/ogrn1020100001778.html'
+# CHECK_TEXT = 'Гиагинское районное отделение Адыгейской республиканской общественной организации охотников и рыболовов'
+
+TEST_URL = 'https://github.com/theodor85'
+CHECK_TEXT = 'theodor85'
 
 @pagehandler(parser="BeautifulSoup")
 def get_data(url, soup=None):
-    h2 = soup.find( "h2" )
-    header = h2.get_text().strip()
-    return header
+    span = soup.find( name="span", attrs={"class": "p-nickname vcard-username d-block"} )
+    text = span.get_text().strip()
+    return text
 
 @pagehandler_selenium
 def get_data_selenium(url, selenium=None):
