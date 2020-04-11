@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import functools
+from random import choice
 
 from selenium import webdriver
 
@@ -8,13 +9,12 @@ def pagehandler_selenium(func):
         
     @functools.wraps(func)
     def execute(url, proxy=None, user_agent=None):
-        return DataExtractor(
+        return SeleniumDriver().get_data(
             func,
             url,
             proxy,
             user_agent,
-            backend=SeleniumDriver(),
-        ).get_data()
+        )
 
     return execute
 
