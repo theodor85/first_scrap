@@ -26,57 +26,26 @@ Another installing approach is getting source code from GitHub. For this execute
     python setup.py develop
 
 ## How to use
-To extract data from single web-page create a class that derives from the `PageHandler` abstract class.
 
-In your class, you must define a constructor in which you must call the base class constructor and define two instance fields: `URL` and `use_selenium`:
+Using example for exctracting data from one web page:
 
-- `URL` - URL of the web-page from which you want to extract data.
-- `use_selenium` - this boolean field determine if BeautifulSoup will be used (if it sets in `False`) or Selenium (`True`).
-
-As well you must define a method `extract_data_from_html(self, soup=None, selenium_driver=None)`. Use BeautifulSoup (`soup`) object or Selenium (`selenium_driver`) for data extraction.
-
-An example is given below.
 
 ```python
-from firstscrap.pagehandler import PageHandler
+from firstscrap import pagehandler
 
-# class for one web-page handling
-class OnePageHandler(PageHandler):
+@pagehandler(parser="BeautifulSoup")
+def get_data(url, soup=None):
+    # your only beatifulsoup code, without any requests, proxies, etc
+    span = soup.find( name="span", attrs={"class": "p-nickname vcard-username d-block"} )
+    text = span.get_text().strip()
+    return text
 
-    def __init__(self, URL):
-        super(FlatHandler, self).__init__()
-        self.URL = URL
-        self.use_selenium = False
+if __name__ == '__main__' :
+    print( get_data('https://github.com/theodor85') )
 
-    def extract_data_from_html(self, soup=None, selenium_driver=None):
-
-        data = {}
-        data['link']    = self.URL
-        data['name']    = soup.find('h1', class_='information__title___1nM29').get_text().strip()
-        data['price']   = soup.find('div', class_='information__price___2Lpc0').span.get_text().strip()
+    # output:
+    # theodor85
 ```
-Then create an instance of that class and call the `execute()` method. 
-
-```python
-handler = FlatHandler('<your URL>')
-data = handler.execute()
-```
-
-There are your extracted data in the `data` variable.
-
-To extract data from list of many same web-pages use the `list_handler` function:
-
-```python
-from firstscrap.listhandler import list_handler
-
-result = list_handler(list_of_links, OnePageHandler, with_processes=True, process_limit=5)
-```
-
-The function takes parametres:
-- `list_of_links` - list of links to pages from which data will be extracted;
-- `OnePageHandler` - descendant of `PageHandler` class, extracts data from one web-page;
-- `with_processes` - boolean parameter, if multiprocessing will be used;
-- `process_limit` - max number of processes.
 
 ## What's under hood
 
@@ -84,18 +53,42 @@ When extracting data from a single page:
 
 1. Random proxy server and user-agent are selected from the lists stored in the file.
 2. These proxies and user-agents are used to access the page we need.
-3. With BeautifulSoup or Selenium (depending on the use_selenium field), the data is retrieved from the page and returned by the ' execute ()`method.
+3. With BeautifulSoup the data is retrieved from the page.
 
-When extracting data from a page list:
+## The most interesting thing is plenty identical pages processing
 
-1. If the `with_processes = False` parameter, the program retrieves data one by one from all pages in the passed list. At the same time, a random proxy server and user-agent are used every time.
-2. Otherwise, the program starts processing each page in a separate process, and the number of processes running at the same time does not exceed `process_limit`.
+Here is the example:
 
-### Prerequisites
+```python
+from firstscrap import listhandler
 
-To use the Selenium library opportunities, you must install the Google Chrome browser ([download here](https://www.google.com/intl/ru_ALL/chrome/)) and chromedriver ([installation instructions](https://sites.google.com/a/chromium.org/chromedriver/getting-started)) on your system.
+TEST_URLLIST_OLX = [
+    'https://www.olx.ua/obyavlenie/spetsialist-po-podklyucheniyu-interneta-IDGnCkB.html',
+    'https://www.olx.ua/obyavlenie/menedzher-po-robot-s-klentami-IDGkGK6.html',
+]
 
-Supporting for other brousers is planned.
+@listhandler(threads_limit=5, parser='BeautifulSoup')
+def get_date_time_from_olx(urllist, soup=None):
+    ''' Beautifulsoup code for one page '''
+    em = soup.find('em')
+    row_text = em.get_text().strip()
+    return row_text
+
+if __name__ == '__main__' :
+    data = get_date_time_from_olx(TEST_URLLIST_OLX)
+    for item in data:
+        print(item)
+# output:
+# Добавлено: в 16:49, 26 декабря 2019, Номер объявления: 626235005
+# Добавлено: в 16:18, 29 декабря 2019, Номер объявления: 625536978
+
+```
+
+## What's under hood
+
+The program processes each page in a separate thread, and the number of threads running at the same time does not exceed `threads_limit`.
+
+Every thread makes request using random proxy and user-agent.
 
 ## Running the tests
 
