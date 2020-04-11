@@ -6,7 +6,7 @@ https://theodor85.github.io/first_scrap/
 [English](README.md), [Русский](README-ru.md)
 - - -
 
-First_scrap is a library for scraping sites with multiprocessing, random proxies and user-agents.
+First_scrap is a library for multithread scraping sites with random proxies and user-agents.
 
 ## Installation
 
