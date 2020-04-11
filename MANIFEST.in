@@ -1,5 +1,5 @@
-include firstscrap/proxy_list.txt
-include firstscrap/useragents.txt
+include firstscrap/pagehandler/proxy_list.txt
+include firstscrap/pagehandler/useragents.txt
 include README-ru.md
 include LICENSE.txt
 include requirements.txt
