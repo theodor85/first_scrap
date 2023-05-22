@@ -16,7 +16,7 @@ setup(
     url='https://github.com/theodor85/first_scrap',
     install_requires=[
         'beautifulsoup4==4.9.0',
-        'requests==2.23.0',
+        'requests==2.31.0',
         'selenium==3.141.0',
     ],
     description="Scraping sites with multithreading, random proxies and user-agents",
